@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coinis Boxworld - Official Brand Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Coinis Brand Header -->
+        <header class="game-header">
+            <h1 class="game-title">Coinis Boxworld</h1>
+            <div class="game-subtitle">Professional Puzzle Gaming Platform</div>
+            <div class="brand-tagline">Engineered by Coinis AdTech Solutions</div>
+        </header>
+
+        <!-- Professional Info Panel -->
+        <div class="game-info">
+            <div class="level-info">
+                <span class="level-label">Level</span>
+                <span class="current-level">01</span>
+                <span class="level-name">First Steps</span>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Moves</span>
+                    <span class="move-count">000</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Remaining</span>
+                    <span class="targets-remaining">01</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="game-controls">
+            <button class="btn btn--secondary btn-undo" id="undoBtn">
+                <span>↶</span> Undo
+            </button>
+            <button class="btn btn--outline btn-restart" id="restartBtn">
+                <span>🔄</span> Restart
+            </button>
+            <button class="btn btn--secondary btn-levels" id="levelsBtn">
+                <span>📋</span> Levels
+            </button>
+        </div>
+
+        <!-- Professional Game Board -->
+        <div class="game-container">
+            <div class="game-board" id="gameBoard">
+                <!-- Game grid will be generated here -->
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="controls-help">
+            <div class="help-text">
+                <strong>Controls:</strong> Use WASD or arrow keys to navigate. 
+                <strong>Objective:</strong> Push all boxes (📦) to target locations (⭐) to complete the level!
+                <br>
+                <strong>Advanced:</strong> Use R for restart, U for undo, ESC to close dialogs.
+            </div>
+        </div>
+
+        <!-- Victory Modal -->
+        <div class="modal-overlay" id="victoryModal">
+            <div class="modal">
+                <div class="modal-content">
+                    <h2>🎉 Level Complete!</h2>
+                    <p>Successfully completed <strong><span id="completedLevel">Level 1</span></strong></p>
+                    <p>Total moves: <strong><span id="finalMoves">000</span></strong></p>
+                    <div class="modal-buttons">
+                        <button class="btn btn--primary" id="nextLevelBtn">Next Level</button>
+                        <button class="btn btn--secondary" id="restartLevelBtn">Retry Level</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Level Selection Modal -->
+        <div class="modal-overlay" id="levelsModal">
+            <div class="modal">
+                <div class="modal-content">
+                    <h2>📋 Level Selection</h2>
+                    <p>Choose your challenge</p>
+                    <div class="levels-grid" id="levelsGrid">
+                        <!-- Levels will be generated here -->
+                    </div>
+                    <button class="btn btn--outline modal-close" id="closeLevelsBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coinis Footer -->
+        <footer class="game-footer">
+            <div class="footer-content">
+                <div class="footer-branding">
+                    <span class="powered-by">Powered by</span>
+                    <a href="https://coinis.com" target="_blank" class="coinis-link">
+                        <strong>Coinis</strong>
+                    </a>
+                </div>
+                <div class="footer-description">
+                    Advanced AdTech Solutions × Modern Gaming
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="level-generator.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

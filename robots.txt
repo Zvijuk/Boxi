@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://zvijuk.github.io/Boxi/sitemap.xml

@@ -9,20 +9,21 @@ class LevelGenerator {
     }
 
     generateLevel(levelNum) {
-        // Difficulty scaling parameters
+        // Difficulty scaling parameters (IQ 120+ Target)
         const isTutorial = levelNum <= 5;
-        const difficulty = Math.min((levelNum - 1) / 100, 1); // 0.0 to 1.0
-        
-        // Grid size: 7x7 to 14x14
-        const size = Math.floor(7 + difficulty * 7); 
+        // Non-linear difficulty curve: favors harder levels earlier
+        const difficulty = Math.pow((levelNum - 1) / 99, 0.8); // 0.0 to 1.0
+
+        // Grid size: 7x7 to 12x12 (Kept tighter for higher density)
+        const size = Math.floor(7 + difficulty * 5);
         const width = size;
         const height = size;
 
-        // Box count: 2 to 7
-        const boxCount = Math.floor(2 + difficulty * 5);
+        // Box count: 3 to 10 (Higher density)
+        const boxCount = Math.floor(3 + difficulty * 7);
 
-        // Complexity (steps to reverse): 15 to 100+
-        const steps = Math.floor(15 + difficulty * 150);
+        // Complexity (steps to reverse): 30 to 500 (Much deeper solutions)
+        const steps = Math.floor(30 + difficulty * 470);
 
         return this.createLevel(width, height, boxCount, steps, levelNum);
     }
@@ -50,7 +51,7 @@ class LevelGenerator {
         while (boxes.length < boxCount && attempts < 1000) {
             let x = Math.floor(Math.random() * (width - 2)) + 1;
             let y = Math.floor(Math.random() * (height - 2)) + 1;
-            
+
             // Check spacing - distinct positions
             if (!boxes.some(b => b.x === x && b.y === y)) {
                 boxes.push({ x, y });
@@ -65,7 +66,7 @@ class LevelGenerator {
         while (!playerPlaced && attempts < 1000) {
             let x = Math.floor(Math.random() * (width - 2)) + 1;
             let y = Math.floor(Math.random() * (height - 2)) + 1;
-            
+
             if (!boxes.some(b => b.x === x && b.y === y)) {
                 player = { x, y };
                 playerPlaced = true;
@@ -81,7 +82,7 @@ class LevelGenerator {
         // To pull B to NewB (where NewB is adjacent to B, and Player is at NewB currently? No.)
         // Standard Pull: Player is at P. Box is at B (adjacent). Player moves to NewP (away from B). Box moves to P.
         // Requirement: NewP must be empty. P is occupied by Player. B is occupied by Box.
-        
+
         // Let's rephrase: 
         // We are at configuration C_i.
         // Choose a random box B_i at (bx, by).
@@ -98,7 +99,7 @@ class LevelGenerator {
         //     Let's map it:
         //     FORWARD: [Player] [Box] [Empty]  ---> [Empty] [Player] [Box]
         //     REVERSE: [Empty] [Player] [Box]  ---> [Player] [Box] [Empty]
-        
+
         //   So, to perform a REVERSE PULL:
         //   - Pick a Box at (bx, by).
         //   - Pick a neighbor cell (px, py) where the Player currently IS.
@@ -118,7 +119,7 @@ class LevelGenerator {
         //      So Player stands at (x,y). Box is at (x+1, y).
         //      Player moves to (x-1, y). Box moves to (x, y). (Pulling it 'left').
         //      Condition: (x-1, y) must be empty.
-        
+
         //   Algorithm loop:
         //   For n steps:
         //     - Identify all "Potential Pulls". A potential pull is:
@@ -137,11 +138,11 @@ class LevelGenerator {
         //         - Move Player to P_dest.
         //         - Move Box to B_dest (which is P_req).
         //     - Update map state (Box positions changed).
-        
+
         // Track box positions precisely.
         // Map char update:
         // We'll keep 'map' mostly static with walls and targets. We manage entities separately.
-        
+
         let currentBoxes = boxes.map(b => ({ ...b }));
         let currentPlayer = { ...player };
 
@@ -168,10 +169,10 @@ class LevelGenerator {
                     // Player at (bx + dx, by + dy)  <-- P_req
                     // Move Player to (bx + 2dx, by + 2dy) <-- P_dest
                     // Move Box to (bx + dx, by + dy) <-- B_dest == P_req
-                    
+
                     const pReq = { x: box.x + dir.dx, y: box.y + dir.dy };
                     const pDest = { x: box.x + 2 * dir.dx, y: box.y + 2 * dir.dy };
-                    
+
                     // 1. Check bounds and walls for P_req
                     if (!this.isValidCell(pReq, width, height, map, currentBoxes)) return; // Cell occupied by box?
                     // Actually P_req MUST NOT be a box (it's where player needs to stand).
@@ -198,14 +199,14 @@ class LevelGenerator {
 
             // Pick random pull
             const pull = possiblePulls[Math.floor(Math.random() * possiblePulls.length)];
-            
+
             // Execute
             const box = currentBoxes[pull.boxIdx];
-            
+
             // Move player to dest
             currentPlayer.x = pull.pDest.x;
             currentPlayer.y = pull.pDest.y;
-            
+
             // Move box to pReq
             box.x = pull.pReq.x;
             box.y = pull.pReq.y;
@@ -215,9 +216,9 @@ class LevelGenerator {
         // Convert dynamic entities back to string map
         // Map currently has Walls (#) and Targets (.) and Floors ( )
         // We need to place '$' (Box), '@' (Player), '*' (Box on Target), '+' (Player on Target)
-        
+
         let finalMap = JSON.parse(JSON.stringify(map)); // Deep copy chars
-        
+
         // Place Boxes
         currentBoxes.forEach(box => {
             const char = finalMap[box.y][box.x];
@@ -234,7 +235,7 @@ class LevelGenerator {
             finalMap[currentPlayer.y][currentPlayer.x] = '+';
         } else if (char === '$' || char === '*') {
             // Should not happen if logic is correct
-             // Fallback if player ended up on box?
+            // Fallback if player ended up on box?
         } else {
             finalMap[currentPlayer.y][currentPlayer.x] = '@';
         }
@@ -261,23 +262,23 @@ class LevelGenerator {
 
     canReach(start, target, w, h, map, boxes) {
         if (start.x === target.x && start.y === target.y) return true;
-        
+
         let file = new Array(h).fill(0).map(() => new Array(w).fill(false));
         let queue = [start];
         file[start.y][start.x] = true;
 
         while (queue.length > 0) {
             let curr = queue.shift();
-            
+
             for (let dir of this.DIRECTIONS) {
                 let next = { x: curr.x + dir.dx, y: curr.y + dir.dy };
-                
+
                 if (next.x === target.x && next.y === target.y) return true;
 
-                if (this.isValidCell(next, w, h, map, boxes) && 
-                    !this.isBox(next, boxes) && 
+                if (this.isValidCell(next, w, h, map, boxes) &&
+                    !this.isBox(next, boxes) &&
                     !file[next.y][next.x]) {
-                    
+
                     file[next.y][next.x] = true;
                     queue.push(next);
                 }

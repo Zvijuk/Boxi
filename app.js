@@ -164,6 +164,44 @@ class CoinisBoxworldOfficial {
                 }
             });
         });
+
+        // Touch controls for mobile
+        this.touchStartX = 0;
+        this.touchStartY = 0;
+        const gameBoard = document.getElementById('gameBoard');
+
+        gameBoard.addEventListener('touchstart', (e) => {
+            this.touchStartX = e.changedTouches[0].screenX;
+            this.touchStartY = e.changedTouches[0].screenY;
+            e.preventDefault(); // Prevent default scroll
+        }, { passive: false });
+
+        gameBoard.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            this.handleSwipe(touchEndX, touchEndY);
+            e.preventDefault();
+        }, { passive: false });
+    }
+
+    handleSwipe(endX, endY) {
+        const threshold = 30; // Min distance for swipe
+        const dx = endX - this.touchStartX;
+        const dy = endY - this.touchStartY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Horizontal swipe
+            if (Math.abs(dx) > threshold) {
+                if (dx > 0) this.movePlayerWithAnimation(1, 0); // Right
+                else this.movePlayerWithAnimation(-1, 0); // Left
+            }
+        } else {
+            // Vertical swipe
+            if (Math.abs(dy) > threshold) {
+                if (dy > 0) this.movePlayerWithAnimation(0, 1); // Down
+                else this.movePlayerWithAnimation(0, -1); // Up
+            }
+        }
     }
 
     addVisualFeedback() {

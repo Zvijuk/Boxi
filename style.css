@@ -1015,10 +1015,12 @@ body {
 
 /* Clean Game Board */
 .game-container {
-  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  padding: var(--space-16);
+  overflow: auto;
 }
 
 .game-board {
@@ -1029,6 +1031,8 @@ body {
   padding: var(--space-20);
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--color-border);
+  margin: 0 auto;
+  max-width: 100%;
 }
 
 .cell {

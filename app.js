@@ -209,7 +209,7 @@ class CoinisBoxworldOfficial {
     renderGame() {
         const board = this.gameBoard;
         board.innerHTML = '';
-        board.style.gridTemplateColumns = `repeat(${this.gameState.width}, 1fr)`;
+        board.style.gridTemplateColumns = `repeat(${this.gameState.width}, auto)`;
 
         for (let y = 0; y < this.gameState.height; y++) {
             for (let x = 0; x < this.gameState.width; x++) {

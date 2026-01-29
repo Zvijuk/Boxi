@@ -72,8 +72,16 @@
             <header class="game-header">
                 <h1 class="game-title">Coinis Boxworld</h1>
                 <div class="game-subtitle">Professional Puzzle Gaming Platform</div>
-                <div class="brand-tagline">Engineered by Coinis AdTech Solutions</div>
-                <!-- Auth moved to Sidebar for desktop, kept here for mobile maybe? No, consistent sidebar is better. -->
+
+                <!-- Auth / User Profile (Header) -->
+                <div class="user-profile-header" id="userProfileArea">
+                    <button id="loginBtnHeader" class="btn btn--small btn--primary">Login to Save 💾</button>
+                    <div id="userInfo" style="display:none; align-items: center; gap: 10px;">
+                        <img id="userAvatar" src="" alt="User" style="width: 30px; height: 30px; border-radius: 50%;">
+                        <span id="userNameDisplay" style="font-weight: 500; font-size: 0.9em;">Guest</span>
+                        <button id="logoutBtn" class="btn--text" style="font-size: 0.8em;">Logout</button>
+                    </div>
+                </div>
             </header>
 
             <!-- Professional Info Panel -->
@@ -143,32 +151,6 @@
                 </div>
             </footer>
         </main>
-
-        <!-- Community Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="user-profile" id="userProfileArea">
-                    <button id="loginBtnSidebar" class="btn btn--small btn--primary">Login to Save 💾</button>
-                    <div id="userInfo" style="display:none;">
-                        <img id="userAvatar" src="" alt="User">
-                        <span id="userNameDisplay">Guest</span>
-                        <button id="logoutBtn" class="btn--text">Logout</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-section leaderboard-section">
-                <h3>🏆 Live Leaderboard</h3>
-                <div class="leaderboard-tabs">
-                    <!-- Tabs managed by JS if needed, or simple list -->
-                </div>
-                <div id="sidebarLeaderboardList" class="leaderboard-list">
-                    <div class="loading-state">Loading scores...</div>
-                </div>
-            </div>
-
-            <!-- Chat Removed -->
-        </aside>
     </div>
 
     <!-- Firebase Compat Scripts (Required for local file:// execution) -->
@@ -2558,7 +2540,6 @@
                 // 3. Auth & Progress Logic (Background)
                 this.setupAuth().then(() => {
                     // Auth done (or timed out), specific post-auth logic if needed
-                    this.startLeaderboardUpdates();
                     // Chat removed
                 });
 
@@ -2588,54 +2569,50 @@
                 // Enhanced keyboard controls
                 document.addEventListener('keydown', (e) => this.handleKeyPress(e));
 
+                // Helper to safely add listener
+                const addListener = (id, event, handler) => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener(event, handler);
+                };
+
                 // Button controls
-                document.getElementById('undoBtn').addEventListener('click', () => {
+                addListener('undoBtn', 'click', () => {
                     this.addVisualFeedback();
                     this.undo();
                 });
 
-                document.getElementById('restartBtn').addEventListener('click', () => {
+                addListener('restartBtn', 'click', () => {
                     this.addVisualFeedback();
                     this.restart();
                 });
 
-                document.getElementById('levelsBtn').addEventListener('click', () => {
+                addListener('levelsBtn', 'click', () => {
                     this.addVisualFeedback();
                     this.showLevelSelection();
                 });
 
-                // Leaderboard Button
-                const lbBtn = document.getElementById('leaderboardBtn');
-                if (lbBtn) {
-                    lbBtn.addEventListener('click', () => {
-                        this.addVisualFeedback();
-                        this.showLeaderboard();
-                    });
-                }
+                // Leaderboard Button (Removed)
 
-                // Sidebar Login Button (Crucial Fix)
-                const sidebarLogin = document.getElementById('loginBtnSidebar');
-                if (sidebarLogin) {
-                    sidebarLogin.addEventListener('click', () => {
-                        this.addVisualFeedback();
-                        this.triggerLogin();
-                    });
-                }
+                // Header Login Button
+                addListener('loginBtnHeader', 'click', () => {
+                    this.addVisualFeedback();
+                    this.triggerLogin();
+                });
+
+                addListener('logoutBtn', 'click', () => this.triggerLogout());
 
                 // Modal controls
-                document.getElementById('nextLevelBtn').addEventListener('click', () => {
+                addListener('nextLevelBtn', 'click', () => {
                     this.addVisualFeedback();
                     this.nextLevel();
                 });
 
-                document.getElementById('restartLevelBtn').addEventListener('click', () => {
+                addListener('restartLevelBtn', 'click', () => {
                     this.addVisualFeedback();
                     this.restart();
                 });
 
-                document.getElementById('closeLevelsBtn').addEventListener('click', () => {
-                    this.hideLevelSelection();
-                });
+                addListener('closeLevelsBtn', 'click', () => this.hideLevelSelection());
 
                 // Modal overlay interactions
                 document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -2647,13 +2624,7 @@
                     });
                 });
 
-                // Close Leaderboard
-                const closeLb = document.getElementById('closeLeaderboardBtn');
-                if (closeLb) {
-                    closeLb.addEventListener('click', () => {
-                        document.getElementById('leaderboardModal').classList.remove('active');
-                    });
-                }
+                // Close Leaderboard (Removed)
 
                 // Touch controls
                 this.touchStartX = 0;
@@ -3108,7 +3079,7 @@
 
             handleAuthChange(user) {
                 this.currentUser = user;
-                const loginBtn = document.getElementById('loginBtnSidebar');
+                const loginBtn = document.getElementById('loginBtnHeader');
                 const userInfo = document.getElementById('userInfo');
                 const userAvatar = document.getElementById('userAvatar');
                 const userNameDisplay = document.getElementById('userNameDisplay');

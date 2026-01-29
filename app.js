@@ -7,30 +7,34 @@ class CoinisBoxworldOfficial {
         this.moves = 0;
         this.history = [];
         this.gameBoard = document.getElementById('gameBoard');
+        this.completedLevels = this.loadProgress();
+        this.isAnimating = false;
 
-        // Load official levels
+        // Official Coinis game levels
         if (window.classicLevels) {
             this.levels = [...window.classicLevels];
+            // Ensure we have 100 levels
+            if (this.levels.length < 100) {
+                console.warn(`Only loaded ${this.levels.length} levels from classic set.`);
+            }
         } else {
-            console.error("Critical: Levels not loaded!");
+            console.error("Critical: Classic levels not loaded!");
             this.levels = [];
         }
 
         this.initializeGame();
-        this.completedLevels = this.loadProgress();
     }
 
-    async initializeGame() {
-        // 1. Setup Listeners
-        this.setupEventListeners();
+    // generateAdditionalLevels removed as we now have 100 static levels
 
-        // 2. Load UI immediately (Guest Mode first)
+    initializeGame() {
+        this.setupEventListeners();
         this.loadLevel(this.currentLevel);
         this.updateUI();
-
-
-
         this.showWelcomeMessage();
+
+        // Initialize Auth
+        this.setupAuth();
     }
 
     showWelcomeMessage() {
@@ -72,7 +76,14 @@ class CoinisBoxworldOfficial {
             this.showLevelSelection();
         });
 
-
+        // Leaderboard Button
+        const lbBtn = document.getElementById('leaderboardBtn');
+        if (lbBtn) {
+            lbBtn.addEventListener('click', () => {
+                this.addVisualFeedback();
+                this.showLeaderboard();
+            });
+        }
 
         // Modal controls
         document.getElementById('nextLevelBtn').addEventListener('click', () => {
@@ -99,7 +110,13 @@ class CoinisBoxworldOfficial {
             });
         });
 
-
+        // Close Leaderboard
+        const closeLb = document.getElementById('closeLeaderboardBtn');
+        if (closeLb) {
+            closeLb.addEventListener('click', () => {
+                document.getElementById('leaderboardModal').classList.remove('active');
+            });
+        }
 
         // Touch controls
         this.touchStartX = 0;
@@ -209,7 +226,7 @@ class CoinisBoxworldOfficial {
     renderGame() {
         const board = this.gameBoard;
         board.innerHTML = '';
-        board.style.gridTemplateColumns = `repeat(${this.gameState.width}, auto)`;
+        board.style.gridTemplateColumns = `repeat(${this.gameState.width}, 1fr)`;
 
         for (let y = 0; y < this.gameState.height; y++) {
             for (let x = 0; x < this.gameState.width; x++) {
@@ -422,6 +439,7 @@ class CoinisBoxworldOfficial {
         if (allBoxesOnTargets) {
             this.completedLevels[this.currentLevel] = true;
             this.saveProgress();
+            this.saveScoreToCloud(this.currentLevel, this.moves);
             this.showVictory();
         }
     }
@@ -526,7 +544,72 @@ class CoinisBoxworldOfficial {
         return saved ? JSON.parse(saved) : {};
     }
 
+    setupAuth() {
+        const loginBtn = document.getElementById('loginBtn');
+        const userDisplay = document.getElementById('userName');
 
+        if (!loginBtn) return;
+
+        loginBtn.addEventListener('click', async () => {
+            if (window.firebaseServices && window.firebaseServices.isConfigured()) {
+                try {
+                    const user = await window.firebaseServices.signInWithGoogle();
+                    console.log("Logged in:", user.displayName);
+                } catch (e) {
+                    alert("Authentication cancelled or failed.");
+                }
+            } else {
+                alert("Leaderboard service is not configured! Please see firebase-config.js.");
+            }
+        });
+
+        // Initialize Auth State Listener
+        // We use a simple interval to check if firebase is ready and set up listener
+        const checkAuth = setInterval(() => {
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                clearInterval(checkAuth);
+                window.firebaseServices.auth.onAuthStateChanged(user => {
+                    if (user) {
+                        this.currentUser = user;
+                        loginBtn.style.display = 'none';
+                        userDisplay.style.display = 'inline-block';
+                        userDisplay.textContent = `👤 ${user.displayName.split(' ')[0]}`;
+                    } else {
+                        this.currentUser = null;
+                        loginBtn.style.display = 'inline-block';
+                        userDisplay.style.display = 'none';
+                    }
+                });
+            }
+        }, 500);
+    }
+
+    showLeaderboard() {
+        const modal = document.getElementById('leaderboardModal');
+        if (!modal) return;
+
+        modal.classList.add('active');
+        const list = document.getElementById('leaderboardList');
+
+        if (!window.firebaseServices || !window.firebaseServices.isConfigured()) {
+            list.innerHTML = "<p>Leaderboard service not configured.</p>";
+            return;
+        }
+
+        list.innerHTML = `
+            <div style="padding: 20px; text-align: center;">
+                <p><strong>Coming Soon!</strong></p>
+                <p>The backend is connected.</p>
+                <p>Top scores will appear here.</p>
+            </div>
+        `;
+    }
+
+    saveScoreToCloud(level, moves) {
+        if (this.currentUser && window.firebaseServices) {
+            window.firebaseServices.saveScore(level, moves);
+        }
+    }
 }
 
 // Initialize professional game

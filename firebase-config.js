@@ -1,43 +1,47 @@
-// Firebase Compat Configuration for local file:// execution
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, query, orderBy, limit, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Firebase configuration provided by user
+// TODO: Replace the following with your app's Firebase project configuration
+// See: https://firebase.google.com/docs/web/setup#create-project
 const firebaseConfig = {
-    apiKey: "AIzaSyCt522pC3_0uOgH0bYPTJCXzfla-kHU3iI",
-    authDomain: "web-app-e98cb.firebaseapp.com",
-    projectId: "web-app-e98cb",
-    storageBucket: "web-app-e98cb.firebasestorage.app",
-    messagingSenderId: "930464794067",
-    appId: "1:930464794067:web:51c9af3f2413acd5e69b26",
-    measurementId: "G-VBMFDNBXEP"
+    apiKey: "YOUR_API_KEY_HERE",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
-// Initialize Firebase (Compat)
+// Initialize Firebase
 let app, auth, db;
 let isInitialized = false;
 
 try {
-    if (typeof firebase !== 'undefined') {
-        app = firebase.initializeApp(firebaseConfig);
-        auth = firebase.auth();
-        db = firebase.firestore();
-        isInitialized = true;
-        console.log("Firebase Initialized Successfully (Compat Mode)");
+    // Check if config is set
+    if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
+        console.warn("Firebase Config missing! Leaderboard will be disabled.");
     } else {
-        console.error("Firebase SDK not loaded");
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        isInitialized = true;
+        console.log("Firebase Initialized Successfully");
     }
 } catch (e) {
     console.error("Firebase Initialization Error:", e);
 }
 
-// Export services to window using Compat APIs
+// Export services to window for use in app.js
 window.firebaseServices = {
     auth,
     db,
     signInWithGoogle: async () => {
         if (!isInitialized) { alert("Leaderboard not configured."); return; }
-        const provider = new firebase.auth.GoogleAuthProvider();
+        const provider = new GoogleAuthProvider();
         try {
-            const result = await auth.signInWithPopup(provider);
+            const result = await signInWithPopup(auth, provider);
             return result.user;
         } catch (error) {
             console.error(error);
@@ -46,91 +50,31 @@ window.firebaseServices = {
     },
     signOutUser: async () => {
         if (!isInitialized) return;
-        return auth.signOut();
+        return signOut(auth);
     },
     saveScore: async (level, moves) => {
         if (!isInitialized || !auth.currentUser) return;
         const user = auth.currentUser;
+        const scoreRef = doc(db, "leaderboards", `level_${level}`);
+
+        // We'll trust the client for now (simple game). 
+        // Ideally should check if better than previous score.
+        // For simplicity, we just add to a 'scores' subcollection or update user stat.
+
+        // Strategy: User document stores their bests.
+        const userRef = doc(db, "users", user.uid);
 
         try {
-            // Compat: db.collection().doc()
-            const scoreRef = db.collection(`leaderboard_level_${level}`).doc(user.uid);
-            const currentDoc = await scoreRef.get();
-
-            if (currentDoc.exists) {
-                const data = currentDoc.data();
-                if (data.moves <= moves) {
-                    return;
-                }
-            }
-
-            await scoreRef.set({
-                uid: user.uid,
+            await setDoc(userRef, {
                 displayName: user.displayName,
-                photoURL: user.photoURL,
-                moves: moves,
-                timestamp: new Date().toISOString()
-            });
-            console.log("High score saved!");
+                lastActive: new Date().toISOString(),
+                [`best_level_${level}`]: moves
+            }, { merge: true });
+
+            console.log("Score saved!");
         } catch (e) {
             console.error("Error saving score:", e);
         }
     },
-    getLeaderboard: async (level) => {
-        if (!isInitialized) return [];
-        try {
-            const q = db.collection(`leaderboard_level_${level}`)
-                .orderBy("moves", "asc")
-                .limit(20);
-
-            return new Promise((resolve, reject) => {
-                const unsubscribe = q.onSnapshot((snapshot) => {
-                    const scores = [];
-                    snapshot.forEach((doc) => {
-                        scores.push(doc.data());
-                    });
-                    resolve(scores);
-                    unsubscribe();
-                }, (error) => {
-                    reject(error);
-                });
-            });
-        } catch (e) {
-            console.error("Error fetching leaderboard:", e);
-            return [];
-        }
-    },
-    isConfigured: () => isInitialized,
-
-    // --- Chat API (Compat) ---
-    subscribeToChat: (callback) => {
-        if (!isInitialized) return () => { };
-
-        const q = db.collection("chat_messages")
-            .orderBy("timestamp", "desc")
-            .limit(50);
-
-        return q.onSnapshot((snapshot) => {
-            const messages = [];
-            snapshot.forEach((doc) => {
-                messages.push({ id: doc.id, ...doc.data() });
-            });
-            callback(messages.reverse());
-        });
-    },
-
-    sendMessage: async (text) => {
-        if (!isInitialized || !auth.currentUser) return;
-        const user = auth.currentUser;
-
-        if (text.length > 100) throw new Error("Message too long");
-
-        await db.collection("chat_messages").add({
-            text: text,
-            uid: user.uid,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            timestamp: new Date().toISOString()
-        });
-    }
+    isConfigured: () => isInitialized
 };

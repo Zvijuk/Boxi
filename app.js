@@ -32,6 +32,9 @@ class CoinisBoxworldOfficial {
         this.loadLevel(this.currentLevel);
         this.updateUI();
         this.showWelcomeMessage();
+
+        // Initialize Auth
+        this.setupAuth();
     }
 
     showWelcomeMessage() {
@@ -57,7 +60,7 @@ class CoinisBoxworldOfficial {
         // Enhanced keyboard controls
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
 
-        // Button controls with professional feedback
+        // Button controls
         document.getElementById('undoBtn').addEventListener('click', () => {
             this.addVisualFeedback();
             this.undo();
@@ -72,6 +75,15 @@ class CoinisBoxworldOfficial {
             this.addVisualFeedback();
             this.showLevelSelection();
         });
+
+        // Leaderboard Button
+        const lbBtn = document.getElementById('leaderboardBtn');
+        if (lbBtn) {
+            lbBtn.addEventListener('click', () => {
+                this.addVisualFeedback();
+                this.showLeaderboard();
+            });
+        }
 
         // Modal controls
         document.getElementById('nextLevelBtn').addEventListener('click', () => {
@@ -98,23 +110,33 @@ class CoinisBoxworldOfficial {
             });
         });
 
-        // Touch controls for mobile
+        // Close Leaderboard
+        const closeLb = document.getElementById('closeLeaderboardBtn');
+        if (closeLb) {
+            closeLb.addEventListener('click', () => {
+                document.getElementById('leaderboardModal').classList.remove('active');
+            });
+        }
+
+        // Touch controls
         this.touchStartX = 0;
         this.touchStartY = 0;
         const gameBoard = document.getElementById('gameBoard');
 
-        gameBoard.addEventListener('touchstart', (e) => {
-            this.touchStartX = e.changedTouches[0].screenX;
-            this.touchStartY = e.changedTouches[0].screenY;
-            e.preventDefault(); // Prevent default scroll
-        }, { passive: false });
+        if (gameBoard) {
+            gameBoard.addEventListener('touchstart', (e) => {
+                this.touchStartX = e.changedTouches[0].screenX;
+                this.touchStartY = e.changedTouches[0].screenY;
+                e.preventDefault(); // Prevent default scroll
+            }, { passive: false });
 
-        gameBoard.addEventListener('touchend', (e) => {
-            const touchEndX = e.changedTouches[0].screenX;
-            const touchEndY = e.changedTouches[0].screenY;
-            this.handleSwipe(touchEndX, touchEndY);
-            e.preventDefault();
-        }, { passive: false });
+            gameBoard.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                this.handleSwipe(touchEndX, touchEndY);
+                e.preventDefault();
+            }, { passive: false });
+        }
     }
 
     handleSwipe(endX, endY) {
@@ -417,6 +439,7 @@ class CoinisBoxworldOfficial {
         if (allBoxesOnTargets) {
             this.completedLevels[this.currentLevel] = true;
             this.saveProgress();
+            this.saveScoreToCloud(this.currentLevel, this.moves);
             this.showVictory();
         }
     }
@@ -521,68 +544,71 @@ class CoinisBoxworldOfficial {
         return saved ? JSON.parse(saved) : {};
     }
 
-    async solveLevel() {
-        if (this.isAnimating) return;
+    setupAuth() {
+        const loginBtn = document.getElementById('loginBtn');
+        const userDisplay = document.getElementById('userName');
 
-        const btn = document.getElementById('solveBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span>⏳</span> Thinking...';
-        btn.disabled = true;
+        if (!loginBtn) return;
 
-        // Yield to UI
-        await new Promise(r => requestAnimationFrame(r));
-        await new Promise(r => setTimeout(r, 50));
-
-        try {
-            console.log("Starting Auto-Solve for Level " + this.currentLevel);
-            // Restart to ensure clean state
-            this.restart();
-            await new Promise(r => setTimeout(r, 300)); // Wait for restart
-
-            const currentLevelData = this.levels[this.currentLevel - 1];
-            const solver = new SokobanSolver(currentLevelData.map);
-
-            // 8 seconds max solve time
-            const solutionPath = solver.solve(8000);
-
-            if (solutionPath) {
-                console.log("Solution found: " + solutionPath.length + " moves");
-                btn.innerHTML = '<span>🎬</span> Playing...';
-                await this.animateSolution(solutionPath);
+        loginBtn.addEventListener('click', async () => {
+            if (window.firebaseServices && window.firebaseServices.isConfigured()) {
+                try {
+                    const user = await window.firebaseServices.signInWithGoogle();
+                    console.log("Logged in:", user.displayName);
+                } catch (e) {
+                    alert("Authentication cancelled or failed.");
+                }
             } else {
-                console.warn("Solver timed out.");
-                alert("This level is too complex for the magic solver to find a solution quickly! Try manually.");
+                alert("Leaderboard service is not configured! Please see firebase-config.js.");
             }
-        } catch (e) {
-            console.error("Solver error:", e);
-            alert("Error running solver: " + e.message);
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
+        });
+
+        // Initialize Auth State Listener
+        // We use a simple interval to check if firebase is ready and set up listener
+        const checkAuth = setInterval(() => {
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                clearInterval(checkAuth);
+                window.firebaseServices.auth.onAuthStateChanged(user => {
+                    if (user) {
+                        this.currentUser = user;
+                        loginBtn.style.display = 'none';
+                        userDisplay.style.display = 'inline-block';
+                        userDisplay.textContent = `👤 ${user.displayName.split(' ')[0]}`;
+                    } else {
+                        this.currentUser = null;
+                        loginBtn.style.display = 'inline-block';
+                        userDisplay.style.display = 'none';
+                    }
+                });
+            }
+        }, 500);
     }
 
-    async animateSolution(path) {
-        this.isAnimating = true;
+    showLeaderboard() {
+        const modal = document.getElementById('leaderboardModal');
+        if (!modal) return;
 
-        for (const char of path) {
-            if (!this.isAnimating) break; // Allow interrupt
+        modal.classList.add('active');
+        const list = document.getElementById('leaderboardList');
 
-            const moveDir = char.toLowerCase();
-
-            let dx = 0, dy = 0;
-            if (moveDir === 'u') dy = -1;
-            if (moveDir === 'd') dy = 1;
-            if (moveDir === 'l') dx = -1;
-            if (moveDir === 'r') dx = 1;
-
-            this.movePlayerWithAnimation(dx, dy);
-
-            // Replay speed
-            await new Promise(r => setTimeout(r, 150));
+        if (!window.firebaseServices || !window.firebaseServices.isConfigured()) {
+            list.innerHTML = "<p>Leaderboard service not configured.</p>";
+            return;
         }
 
-        this.isAnimating = false;
+        list.innerHTML = `
+            <div style="padding: 20px; text-align: center;">
+                <p><strong>Coming Soon!</strong></p>
+                <p>The backend is connected.</p>
+                <p>Top scores will appear here.</p>
+            </div>
+        `;
+    }
+
+    saveScoreToCloud(level, moves) {
+        if (this.currentUser && window.firebaseServices) {
+            window.firebaseServices.saveScore(level, moves);
+        }
     }
 }
 

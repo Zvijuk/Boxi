@@ -72,6 +72,10 @@
             <h1 class="game-title">Coinis Boxworld</h1>
             <div class="game-subtitle">Professional Puzzle Gaming Platform</div>
             <div class="brand-tagline">Engineered by Coinis AdTech Solutions</div>
+            <div class="user-auth" style="position: absolute; top: 20px; right: 20px;">
+                <button id="loginBtn" class="btn btn--small btn--outline">Login 👤</button>
+                <span id="userName" style="display:none; color: var(--text-color);"></span>
+            </div>
         </header>
 
         <!-- Professional Info Panel -->
@@ -103,6 +107,9 @@
             </button>
             <button class="btn btn--secondary btn-levels" id="levelsBtn">
                 <span>📋</span> Levels
+            </button>
+            <button class="btn btn--secondary" id="leaderboardBtn">
+                <span>🏆</span> Top
             </button>
         </div>
 
@@ -153,6 +160,23 @@
             </div>
         </div>
 
+        <!-- Leaderboard Modal -->
+        <div class="modal-overlay" id="leaderboardModal">
+            <div class="modal" style="max-width: 500px;">
+                <div class="modal-content">
+                    <h2>🏆 Leaderboard</h2>
+                    <div class="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button class="btn btn--small active" id="tabGlobal">Global</button>
+                        <button class="btn btn--small" id="tabPersonal">My Bests</button>
+                    </div>
+                    <div id="leaderboardList" style="text-align: left; max-height: 300px; overflow-y: auto;">
+                        <p>Loading...</p>
+                    </div>
+                    <button class="btn btn--outline modal-close" id="closeLeaderboardBtn">Close</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Coinis Footer -->
         <footer class="game-footer">
             <div class="footer-content">
@@ -171,6 +195,7 @@
 
     </div>
 
+    <script type="module" src="firebase-config.js"></script>
     <script src="levels.js"></script>
     <script src="app.js"></script>
 </body>

@@ -1617,3 +1617,205 @@ body {
     display: none;
   }
 }
+/* APP LAYOUT - Sidebar Implementation */
+.app-layout {
+    display: flex;
+    max-width: 1400px;
+    margin: 0 auto;
+    min-height: 100vh;
+    gap: 20px;
+    padding: 20px;
+}
+
+.main-content {
+    flex: 1; /* Takes remaining space */
+    min-width: 0; /* Prevents overflow issues */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.sidebar {
+    width: 350px;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 40px);
+    position: sticky;
+    top: 20px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+    .app-layout {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        height: 500px;
+        position: relative;
+        top: 0;
+        border-left: none;
+        border-top: 1px solid var(--color-border);
+    }
+}
+
+/* Sidebar Components */
+.sidebar-header {
+    padding: 15px;
+    background: var(--color-background);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#userInfo {
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+}
+
+#userAvatar {
+    width: 32px; 
+    height: 32px; 
+    border-radius: 50%; 
+    border: 2px solid var(--color-primary);
+}
+
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    border-bottom: 1px solid var(--color-border-secondary);
+}
+
+.sidebar-section h3 {
+    font-size: var(--font-size-lg);
+    margin-bottom: 10px;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Leaderboard Specifics */
+.leaderboard-section {
+    flex: 1; /* Takes roughly half */
+    max-height: 45%;
+    overflow: hidden;
+}
+
+.leaderboard-list {
+    overflow-y: auto;
+    flex: 1;
+    font-size: var(--font-size-sm);
+}
+
+.leaderboard-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-list td, .leaderboard-list th {
+    padding: 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.leaderboard-list tr.current-user-row {
+    background: rgba(var(--color-primary-rgb), 0.1);
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+/* Chat Specifics */
+.chat-section {
+    flex: 1.5; /* Chat takes more space if possible or equal */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 10px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--color-background);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chat-message {
+    font-size: 0.9em;
+    padding: 5px 8px;
+    border-radius: 4px;
+    background: var(--color-surface);
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.chat-message strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.chat-message.system {
+    font-style: italic;
+    color: var(--color-text-secondary);
+    text-align: center;
+    font-size: 0.8em;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 5px;
+    position: relative;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.chat-input-area button {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 15px;
+    cursor: pointer;
+}
+
+.login-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+}
+
+.login-overlay button {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}

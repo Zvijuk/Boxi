@@ -22,11 +22,19 @@ class CoinisBoxworldOfficial {
     async initializeGame() {
         // 1. Setup Listeners
         this.setupEventListeners();
-        this.updateUI();
-        this.showWelcomeMessage();
 
-        // Initialize Auth
-        this.setupAuth();
+        // 2. Load UI immediately (Guest Mode first)
+        this.loadLevel(this.currentLevel);
+        this.updateUI();
+
+        // 3. Auth & Progress Logic (Background)
+        this.setupAuth().then(() => {
+            // Auth done (or timed out), specific post-auth logic if needed
+            this.startLeaderboardUpdates();
+            this.setupChat();
+        });
+
+        this.showWelcomeMessage();
     }
 
     showWelcomeMessage() {

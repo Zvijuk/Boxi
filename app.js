@@ -73,12 +73,6 @@ class CoinisBoxworldOfficial {
             this.showLevelSelection();
         });
 
-        // Solve Button
-        document.getElementById('solveBtn').addEventListener('click', () => {
-            this.addVisualFeedback();
-            this.solveLevel();
-        });
-
         // Modal controls
         document.getElementById('nextLevelBtn').addEventListener('click', () => {
             this.addVisualFeedback();
@@ -409,6 +403,7 @@ class CoinisBoxworldOfficial {
     }
 
     restart() {
+        this.isSolving = false;
         this.loadLevel(this.currentLevel);
     }
 

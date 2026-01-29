@@ -11,69 +11,13 @@ class CoinisBoxworldOfficial {
         this.isAnimating = false;
 
         // Official Coinis game levels with professional naming
-        this.levels = [
-            {
-                level: 1,
-                name: "First Steps",
-                difficulty: "Beginner",
-                description: "Learn the basics - move and push boxes to targets",
-                map: [
-                    "######",
-                    "#    #",
-                    "# $@ #",
-                    "#  . #",
-                    "#    #",
-                    "######"
-                ]
-            },
-            {
-                level: 2,
-                name: "Two Targets",
-                difficulty: "Beginner",
-                description: "Handle multiple boxes and targets",
-                map: [
-                    "#######",
-                    "#     #",
-                    "# .$. #",
-                    "#  $  #",
-                    "#  @  #",
-                    "#     #",
-                    "#######"
-                ]
-            },
-            {
-                level: 3,
-                name: "Corridor Challenge",
-                difficulty: "Intermediate",
-                description: "Navigate through narrow passages",
-                map: [
-                    "########",
-                    "#   .  #",
-                    "#   $  #",
-                    "### # ##",
-                    "#     #",
-                    "# @ $ #",
-                    "#   . #",
-                    "#######"
-                ]
-            },
-            // LEVEL 4 FIX: Deadlock resolution implemented
-            {
-                level: 4,
-                name: "Corner Solution",
-                difficulty: "Intermediate",
-                description: "Strategic corner maneuvering [FIXED VERSION]",
-                map: [
-                    "  ####",
-                    "  #  #",
-                    "  #$ #",
-                    "##  .##",  // Fixed: wall removed to prevent deadlock
-                    "#   $ #",
-                    "#@.   #",  // Player repositioned for better access
-                    "#######"
-                ]
-            },
-        ];
+        // Load Classic Levels from levels.js
+        if (window.classicLevels) {
+            this.levels = [...window.classicLevels];
+        } else {
+            console.error("Classic levels not loaded!");
+            this.levels = [];
+        }
 
 
 

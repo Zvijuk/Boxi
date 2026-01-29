@@ -167,19 +167,7 @@
                 </div>
             </div>
 
-            <div class="sidebar-section chat-section">
-                <h3>💬 Community Chat</h3>
-                <div id="chatMessages" class="chat-messages">
-                    <div class="chat-message system">Welcome to Coinis Community!</div>
-                </div>
-                <div class="chat-input-area" id="chatInputArea">
-                    <input type="text" id="chatInput" placeholder="Login to chat..." disabled>
-                    <button id="chatSendBtn" disabled>➤</button>
-                    <div id="loginOverlay" class="login-overlay">
-                        <button class="btn btn--small btn--outline">Login to Chat</button>
-                    </div>
-                </div>
-            </div>
+            <!-- Chat Removed -->
         </aside>
     </div>
 
@@ -2571,7 +2559,7 @@
                 this.setupAuth().then(() => {
                     // Auth done (or timed out), specific post-auth logic if needed
                     this.startLeaderboardUpdates();
-                    this.setupChat();
+                    // Chat removed
                 });
 
                 this.showWelcomeMessage();
@@ -3124,9 +3112,6 @@
                 const userInfo = document.getElementById('userInfo');
                 const userAvatar = document.getElementById('userAvatar');
                 const userNameDisplay = document.getElementById('userNameDisplay');
-                const chatInput = document.getElementById('chatInput');
-                const chatSendBtn = document.getElementById('chatSendBtn');
-                const loginOverlay = document.getElementById('loginOverlay');
 
                 if (user) {
                     // UI State: Logged In
@@ -3135,32 +3120,12 @@
                     if (userAvatar) userAvatar.src = user.photoURL || 'assets/default-avatar.png';
                     if (userNameDisplay) userNameDisplay.textContent = user.displayName.split(' ')[0];
 
-                    // Chat: Enable
-                    if (chatInput) {
-                        chatInput.disabled = false;
-                        chatInput.placeholder = "Type a message...";
-                    }
-                    if (chatSendBtn) chatSendBtn.disabled = false;
-                    if (loginOverlay) loginOverlay.style.display = 'none';
-
                     // Progress: Merge Session -> Cloud
                     this.mergeProgress();
                 } else {
                     // UI State: Guest
                     if (loginBtn) loginBtn.style.display = 'inline-block';
                     if (userInfo) userInfo.style.display = 'none';
-
-                    // Chat: Disable
-                    if (chatInput) {
-                        chatInput.disabled = true;
-                        chatInput.placeholder = "Login to chat...";
-                    }
-                    if (chatSendBtn) chatSendBtn.disabled = true;
-                    if (loginOverlay) {
-                        loginOverlay.style.display = 'flex';
-                        const overlayBtn = loginOverlay.querySelector('button');
-                        if (overlayBtn) overlayBtn.onclick = () => this.triggerLogin();
-                    }
 
                     // Progress: Load Session or use empty
                     const session = sessionStorage.getItem('coinis_progress_temp');

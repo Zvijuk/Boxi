@@ -1,34 +1,31 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, query, orderBy, limit, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// TODO: Replace the following with your app's Firebase project configuration
-// See: https://firebase.google.com/docs/web/setup#create-project
+// Your web app's Firebase configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY_HERE",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCt522pC3_0uOgH0bYPTJCXzfla-kHU3iI",
+    authDomain: "web-app-e98cb.firebaseapp.com",
+    projectId: "web-app-e98cb",
+    storageBucket: "web-app-e98cb.firebasestorage.app",
+    messagingSenderId: "930464794067",
+    appId: "1:930464794067:web:51c9af3f2413acd5e69b26",
+    measurementId: "G-VBMFDNBXEP"
 };
 
 // Initialize Firebase
-let app, auth, db;
+let app, auth, db, analytics;
 let isInitialized = false;
 
 try {
-    // Check if config is set
-    if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE") {
-        console.warn("Firebase Config missing! Leaderboard will be disabled.");
-    } else {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        isInitialized = true;
-        console.log("Firebase Initialized Successfully");
-    }
+    app = initializeApp(firebaseConfig);
+    analytics = getAnalytics(app);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    isInitialized = true;
+    console.log("Firebase Initialized Successfully");
 } catch (e) {
     console.error("Firebase Initialization Error:", e);
 }
@@ -38,7 +35,7 @@ window.firebaseServices = {
     auth,
     db,
     signInWithGoogle: async () => {
-        if (!isInitialized) { alert("Leaderboard not configured."); return; }
+        if (!isInitialized) { alert("Firebase not initialized."); return; }
         const provider = new GoogleAuthProvider();
         try {
             const result = await signInWithPopup(auth, provider);
@@ -55,13 +52,8 @@ window.firebaseServices = {
     saveScore: async (level, moves) => {
         if (!isInitialized || !auth.currentUser) return;
         const user = auth.currentUser;
-        const scoreRef = doc(db, "leaderboards", `level_${level}`);
 
-        // We'll trust the client for now (simple game). 
-        // Ideally should check if better than previous score.
-        // For simplicity, we just add to a 'scores' subcollection or update user stat.
-
-        // Strategy: User document stores their bests.
+        // Save user's personal best
         const userRef = doc(db, "users", user.uid);
 
         try {

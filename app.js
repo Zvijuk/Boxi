@@ -10,33 +10,22 @@ class CoinisBoxworldOfficial {
         this.completedLevels = this.loadProgress();
         this.isAnimating = false;
 
-        // Official Coinis game levels with professional naming
-        // Load Classic Levels from levels.js
+        // Official Coinis game levels
         if (window.classicLevels) {
             this.levels = [...window.classicLevels];
+            // Ensure we have 100 levels
+            if (this.levels.length < 100) {
+                console.warn(`Only loaded ${this.levels.length} levels from classic set.`);
+            }
         } else {
-            console.error("Classic levels not loaded!");
+            console.error("Critical: Classic levels not loaded!");
             this.levels = [];
         }
-
-
-
-        // Generate additional levels up to 100
-        this.levelGenerator = new LevelGenerator();
-        this.generateAdditionalLevels();
 
         this.initializeGame();
     }
 
-    generateAdditionalLevels() {
-        const TOTAL_LEVELS = 100;
-        const currentCount = this.levels.length;
-
-        for (let i = currentCount + 1; i <= TOTAL_LEVELS; i++) {
-            const generatedLevel = this.levelGenerator.generateLevel(i);
-            this.levels.push(generatedLevel);
-        }
-    }
+    // generateAdditionalLevels removed as we now have 100 static levels
 
     initializeGame() {
         this.setupEventListeners();

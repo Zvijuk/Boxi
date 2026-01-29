@@ -330,9 +330,53 @@ class CoinisBoxworldOfficial {
         this.movePlayerWithAnimation(dx, dy);
     }
 
+    updateCell(x, y) {
+        const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+        if (!cell) return;
+
+        // Reset class list but keep base 'cell' class
+        const isWall = this.gameState.map[y][x] === '#';
+        cell.className = 'cell';
+
+        if (isWall) {
+            cell.classList.add('wall');
+            return;
+        }
+
+        cell.classList.add('floor');
+
+        // Check target
+        const isTarget = this.gameState.targets.some(t => t.x === x && t.y === y);
+        if (isTarget) cell.classList.add('target');
+
+        // Check box
+        const box = this.gameState.boxes.find(b => b.x === x && b.y === y);
+        if (box) {
+            cell.classList.add(isTarget ? 'box-on-target' : 'box');
+        }
+
+        // Check player
+        if (this.gameState.player.x === x && this.gameState.player.y === y) {
+            cell.classList.add(isTarget ? 'player-on-target' : 'player');
+        }
+
+        // Re-attach hover listeners (optional, but good for consistency)
+        cell.onmouseenter = () => {
+            if (!isWall) {
+                cell.style.transform = 'scale(1.02)';
+                cell.style.transition = 'transform 0.15s ease';
+            }
+        };
+        cell.onmouseleave = () => {
+            cell.style.transform = 'scale(1)';
+        };
+    }
+
     async movePlayerWithAnimation(dx, dy) {
-        const newX = this.gameState.player.x + dx;
-        const newY = this.gameState.player.y + dy;
+        const oldPlayerX = this.gameState.player.x;
+        const oldPlayerY = this.gameState.player.y;
+        const newX = oldPlayerX + dx;
+        const newY = oldPlayerY + dy;
 
         // Check bounds
         if (newY < 0 || newY >= this.gameState.height ||
@@ -341,6 +385,8 @@ class CoinisBoxworldOfficial {
         // Check wall collision
         const newCell = this.gameState.map[newY] ? this.gameState.map[newY][newX] || ' ' : ' ';
         if (newCell === '#') return;
+
+        let movedBox = null;
 
         // Check box collision
         const box = this.gameState.boxes.find(b => b.x === newX && b.y === newY);
@@ -360,42 +406,70 @@ class CoinisBoxworldOfficial {
             // Check if another box is in the way
             if (this.gameState.boxes.some(b => b.x === pushX && b.y === pushY)) return;
 
-            // Animate box push
+            // Execute Move
             this.isAnimating = true;
             this.saveState();
+
+            // Move Box
+            const oldBoxX = box.x;
+            const oldBoxY = box.y;
             box.x = pushX;
             box.y = pushY;
+            movedBox = { oldX: oldBoxX, oldY: oldBoxY, newX: pushX, newY: pushY };
 
-            // Add moving animation
-            const boxCell = document.querySelector(`[data-x="${newX}"][data-y="${newY}"]`);
-            if (boxCell) {
-                boxCell.classList.add('moving');
-                setTimeout(() => boxCell.classList.remove('moving'), 300);
+            // Move Player
+            this.gameState.player.x = newX;
+            this.gameState.player.y = newY;
+            this.moves++;
+
+            // Update DOM directly (Micro-optimizations)
+            // 1. Update old player pos
+            this.updateCell(oldPlayerX, oldPlayerY);
+            // 2. Update new player pos (which was old box pos)
+            this.updateCell(newX, newY);
+            // 3. Update new box pos
+            this.updateCell(pushX, pushY);
+
+            // Add CSS animation classes
+            const playerEl = document.querySelector(`[data-x="${newX}"][data-y="${newY}"]`);
+            const boxEl = document.querySelector(`[data-x="${pushX}"][data-y="${pushY}"]`);
+
+            if (playerEl) {
+                playerEl.classList.add('moving');
+                setTimeout(() => playerEl.classList.remove('moving'), 100);
             }
+            if (boxEl) {
+                boxEl.classList.add('moving');
+                setTimeout(() => boxEl.classList.remove('moving'), 100);
+            }
+
         } else {
             // Regular move
             this.isAnimating = true;
             this.saveState();
+
+            this.gameState.player.x = newX;
+            this.gameState.player.y = newY;
+            this.moves++;
+
+            // Update DOM
+            this.updateCell(oldPlayerX, oldPlayerY);
+            this.updateCell(newX, newY);
+
+            const playerEl = document.querySelector(`[data-x="${newX}"][data-y="${newY}"]`);
+            if (playerEl) {
+                playerEl.classList.add('moving');
+                setTimeout(() => playerEl.classList.remove('moving'), 100);
+            }
         }
 
-        // Move player with animation
-        const playerCell = document.querySelector(`[data-x="${this.gameState.player.x}"][data-y="${this.gameState.player.y}"]`);
-        if (playerCell) {
-            playerCell.classList.add('moving');
-            setTimeout(() => playerCell.classList.remove('moving'), 300);
-        }
+        this.updateUI();
 
-        this.gameState.player.x = newX;
-        this.gameState.player.y = newY;
-        this.moves++;
-
-        // Delayed re-render for smooth animation
+        // Short delay for logic safety, but UI is already updated
         setTimeout(() => {
-            this.renderGame();
-            this.updateUI();
             this.checkWin();
             this.isAnimating = false;
-        }, 150);
+        }, 50);
     }
 
     saveState() {
@@ -411,15 +485,20 @@ class CoinisBoxworldOfficial {
     }
 
     undo() {
-        if (this.history.length > 1) {
-            this.history.pop();
-            const prevState = this.history[this.history.length - 1];
+        if (this.history.length > 0) {
+            const prevState = this.history.pop();
+
+            // Identify what changed to minimize updates
+            // (Simpler to just update all involved, but let's just re-render changed cells if tracking is hard)
+            // For undo, full re-render is acceptable as it's not a rapid action, 
+            // BUT to keep it smooth, let's just re-render. 
+            // Actually, let's stick to the user's request for smooth "moving". Undo can be a bit heavier.
 
             this.gameState.player = { ...prevState.player };
             this.gameState.boxes = prevState.boxes.map(b => ({ ...b }));
             this.moves = prevState.moves;
 
-            this.renderGame();
+            this.renderGame(); // Full refresh is safer for Undo to ensure consistency
             this.updateUI();
         }
     }

@@ -17,6 +17,7 @@ class CoinisBoxworldOfficial {
         }
 
         this.initializeGame();
+        this.completedLevels = this.loadProgress();
     }
 
     async initializeGame() {
@@ -27,12 +28,7 @@ class CoinisBoxworldOfficial {
         this.loadLevel(this.currentLevel);
         this.updateUI();
 
-        // 3. Auth & Progress Logic (Background)
-        this.setupAuth().then(() => {
-            // Auth done (or timed out), specific post-auth logic if needed
-            this.startLeaderboardUpdates();
-            this.setupChat();
-        });
+
 
         this.showWelcomeMessage();
     }
@@ -76,14 +72,7 @@ class CoinisBoxworldOfficial {
             this.showLevelSelection();
         });
 
-        // Leaderboard Button
-        const lbBtn = document.getElementById('leaderboardBtn');
-        if (lbBtn) {
-            lbBtn.addEventListener('click', () => {
-                this.addVisualFeedback();
-                this.showLeaderboard();
-            });
-        }
+
 
         // Modal controls
         document.getElementById('nextLevelBtn').addEventListener('click', () => {
@@ -110,13 +99,7 @@ class CoinisBoxworldOfficial {
             });
         });
 
-        // Close Leaderboard
-        const closeLb = document.getElementById('closeLeaderboardBtn');
-        if (closeLb) {
-            closeLb.addEventListener('click', () => {
-                document.getElementById('leaderboardModal').classList.remove('active');
-            });
-        }
+
 
         // Touch controls
         this.touchStartX = 0;
@@ -439,7 +422,6 @@ class CoinisBoxworldOfficial {
         if (allBoxesOnTargets) {
             this.completedLevels[this.currentLevel] = true;
             this.saveProgress();
-            this.saveScoreToCloud(this.currentLevel, this.moves);
             this.showVictory();
         }
     }
@@ -536,117 +518,15 @@ class CoinisBoxworldOfficial {
     }
 
     saveProgress() {
-        if (this.currentUser) {
-            localStorage.setItem('coinis-boxworld-official-progress', JSON.stringify(this.completedLevels));
-            this.saveScoreToCloud(this.currentLevel, this.moves);
-        } else {
-            sessionStorage.setItem('coinis_progress_temp', JSON.stringify(this.completedLevels));
-        }
+        localStorage.setItem('coinis-boxworld-official-progress', JSON.stringify(this.completedLevels));
     }
 
     loadProgress() {
-        if (this.currentUser) {
-            return JSON.parse(localStorage.getItem('coinis-boxworld-official-progress') || '{}');
-        } else {
-            return JSON.parse(sessionStorage.getItem('coinis_progress_temp') || '{}');
-        }
+        const saved = localStorage.getItem('coinis-boxworld-official-progress');
+        return saved ? JSON.parse(saved) : {};
     }
 
-    setupAuth() {
-        return new Promise((resolve) => {
-            const checkAuth = setInterval(() => {
-                if (window.firebaseServices && window.firebaseServices.isConfigured()) {
-                    clearInterval(checkAuth);
-                    window.firebaseServices.auth.onAuthStateChanged(user => {
-                        this.handleAuthChange(user);
-                        resolve();
-                    });
-                }
-            }, 100);
 
-            // Fallback if firebase fails
-            setTimeout(resolve, 3000);
-        });
-    }
-
-    handleAuthChange(user) {
-        this.currentUser = user;
-        const loginBtn = document.getElementById('loginBtnSidebar');
-        const userInfo = document.getElementById('userInfo');
-        const userAvatar = document.getElementById('userAvatar');
-        const userNameDisplay = document.getElementById('userNameDisplay');
-        const chatInput = document.getElementById('chatInput');
-        const chatSendBtn = document.getElementById('chatSendBtn');
-        const loginOverlay = document.getElementById('loginOverlay');
-
-        if (user) {
-            // UI State: Logged In
-            if (loginBtn) loginBtn.style.display = 'none';
-            if (userInfo) userInfo.style.display = 'flex';
-            if (userAvatar) userAvatar.src = user.photoURL || 'assets/default-avatar.png';
-            if (userNameDisplay) userNameDisplay.textContent = user.displayName.split(' ')[0];
-
-            // Chat: Enable
-            if (chatInput) {
-                chatInput.disabled = false;
-                chatInput.placeholder = "Type a message...";
-            }
-            if (chatSendBtn) chatSendBtn.disabled = false;
-            if (loginOverlay) loginOverlay.style.display = 'none';
-
-            // Progress: Merge Session -> Cloud
-            this.mergeProgress();
-        } else {
-            // UI State: Guest
-            if (loginBtn) loginBtn.style.display = 'inline-block';
-            if (userInfo) userInfo.style.display = 'none';
-
-            // Chat: Disable
-            if (chatInput) {
-                chatInput.disabled = true;
-                chatInput.placeholder = "Login to chat...";
-            }
-            if (chatSendBtn) chatSendBtn.disabled = true;
-            if (loginOverlay) {
-                loginOverlay.style.display = 'flex';
-                const overlayBtn = loginOverlay.querySelector('button');
-                if (overlayBtn) overlayBtn.onclick = () => this.triggerLogin();
-            }
-
-            // Progress: Load Session or use empty
-            const session = sessionStorage.getItem('coinis_progress_temp');
-            this.completedLevels = session ? JSON.parse(session) : {};
-        }
-
-        this.updateUI();
-    }
-
-    triggerLogin() {
-        if (window.firebaseServices) {
-            window.firebaseServices.signInWithGoogle().catch(console.error);
-        }
-    }
-
-    triggerLogout() {
-        if (window.firebaseServices) {
-            window.firebaseServices.signOutUser();
-            window.location.reload();
-        }
-    }
-
-    mergeProgress() {
-        const sessionProgress = JSON.parse(sessionStorage.getItem('coinis_progress_temp') || '{}');
-        const localProgress = JSON.parse(localStorage.getItem('coinis-boxworld-official-progress') || '{}');
-
-        this.completedLevels = { ...localProgress, ...sessionProgress };
-        this.saveProgress(); // This will now save to localStorage since currentUser is true
-    }
-
-    saveScoreToCloud(level, moves) {
-        if (this.currentUser && window.firebaseServices) {
-            window.firebaseServices.saveScore(level, moves);
-        }
-    }
 }
 
 // Initialize professional game

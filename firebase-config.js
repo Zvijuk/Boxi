@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, query, orderBy, limit, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, query, orderBy, limit, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase configuration provided by user
 const firebaseConfig = {
@@ -105,5 +105,42 @@ window.firebaseServices = {
             return [];
         }
     },
-    isConfigured: () => isInitialized
+    isConfigured: () => isInitialized,
+
+    // --- Chat API ---
+    subscribeToChat: (callback) => {
+        if (!isInitialized) return () => { };
+
+        // Query last 50 messages ordered by timestamp
+        const q = query(
+            collection(db, "chat_messages"),
+            orderBy("timestamp", "desc"),
+            limit(50)
+        );
+
+        return onSnapshot(q, (snapshot) => {
+            const messages = [];
+            snapshot.forEach((doc) => {
+                messages.push({ id: doc.id, ...doc.data() });
+            });
+            // Reverse so newest is at bottom in UI array, but we fetched desc for limit
+            callback(messages.reverse());
+        });
+    },
+
+    sendMessage: async (text) => {
+        if (!isInitialized || !auth.currentUser) return;
+        const user = auth.currentUser;
+
+        // Basic validation
+        if (text.length > 100) throw new Error("Message too long");
+
+        await addDoc(collection(db, "chat_messages"), {
+            text: text,
+            uid: user.uid,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            timestamp: new Date().toISOString() // serverTimestamp() is better but this works for now
+        });
+    }
 };

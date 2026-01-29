@@ -66,133 +66,121 @@
 </head>
 
 <body>
-    <div class="container">
-        <!-- Coinis Brand Header -->
-        <header class="game-header">
-            <h1 class="game-title">Coinis Boxworld</h1>
-            <div class="game-subtitle">Professional Puzzle Gaming Platform</div>
-            <div class="brand-tagline">Engineered by Coinis AdTech Solutions</div>
-            <div class="user-auth" style="position: absolute; top: 20px; right: 20px;">
-                <button id="loginBtn" class="btn btn--small btn--outline">Login 👤</button>
-                <span id="userName" style="display:none; color: var(--text-color);"></span>
-            </div>
-        </header>
+    <div class="app-layout">
+        <!-- Main Game Area -->
+        <main class="main-content">
+            <header class="game-header">
+                <h1 class="game-title">Coinis Boxworld</h1>
+                <div class="game-subtitle">Professional Puzzle Gaming Platform</div>
+                <div class="brand-tagline">Engineered by Coinis AdTech Solutions</div>
+                <!-- Auth moved to Sidebar for desktop, kept here for mobile maybe? No, consistent sidebar is better. -->
+            </header>
 
-        <!-- Professional Info Panel -->
-        <div class="game-info">
-            <div class="level-info">
-                <span class="level-label">Level</span>
-                <span class="current-level">01</span>
-                <span class="level-name">First Steps</span>
-            </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Moves</span>
-                    <span class="move-count">000</span>
+            <!-- Professional Info Panel -->
+            <div class="game-info">
+                <div class="level-info">
+                    <span class="level-label">Level</span>
+                    <span class="current-level">01</span>
+                    <span class="level-name">First Steps</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Remaining</span>
-                    <span class="targets-remaining">01</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Control Panel -->
-        <div class="game-controls">
-            <button class="btn btn--secondary btn-undo" id="undoBtn">
-                <span>↶</span> Undo
-            </button>
-            <button class="btn btn--outline btn-restart" id="restartBtn">
-                <span>🔄</span> Restart
-            </button>
-            <button class="btn btn--secondary btn-levels" id="levelsBtn">
-                <span>📋</span> Levels
-            </button>
-            <button class="btn btn--secondary" id="leaderboardBtn">
-                <span>🏆</span> Top
-            </button>
-        </div>
-
-        <!-- Professional Game Board -->
-        <div class="game-container">
-            <div class="game-board" id="gameBoard">
-                <!-- Game grid will be generated here -->
-            </div>
-        </div>
-
-        <!-- Help Section -->
-        <div class="controls-help">
-            <div class="help-text">
-                <strong>Controls:</strong> Use WASD or arrow keys to navigate. <strong>Mobile:</strong> Swipe to move.
-                <br>
-                <strong>Objective:</strong> Push all boxes (📦) to target locations (⭐) to complete the level!
-                <br>
-                <strong>Advanced:</strong> Use R for restart, U for undo, ESC to close dialogs.
-            </div>
-        </div>
-
-        <!-- Victory Modal -->
-        <div class="modal-overlay" id="victoryModal">
-            <div class="modal">
-                <div class="modal-content">
-                    <h2>🎉 Level Complete!</h2>
-                    <p>Successfully completed <strong><span id="completedLevel">Level 1</span></strong></p>
-                    <p>Total moves: <strong><span id="finalMoves">000</span></strong></p>
-                    <div class="modal-buttons">
-                        <button class="btn btn--primary" id="nextLevelBtn">Next Level</button>
-                        <button class="btn btn--secondary" id="restartLevelBtn">Retry Level</button>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Moves</span>
+                        <span class="move-count">000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Remaining</span>
+                        <span class="targets-remaining">01</span>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Level Selection Modal -->
-        <div class="modal-overlay" id="levelsModal">
-            <div class="modal">
-                <div class="modal-content">
-                    <h2>📋 Level Selection</h2>
-                    <p>Choose your challenge</p>
-                    <div class="levels-grid" id="levelsGrid">
-                        <!-- Levels will be generated here -->
-                    </div>
-                    <button class="btn btn--outline modal-close" id="closeLevelsBtn">Close</button>
-                </div>
+            <!-- Control Panel -->
+            <div class="controls">
+                <button class="btn btn--secondary btn-undo" id="undoBtn" disabled>
+                    <span>↩️</span> Undo
+                </button>
+                <button class="btn btn--outline btn-restart" id="restartBtn">
+                    <span>🔄</span> Restart
+                </button>
+                <button class="btn btn--secondary btn-levels" id="levelsBtn">
+                    <span>📋</span> Levels
+                </button>
             </div>
-        </div>
 
-        <!-- Leaderboard Modal -->
-        <div class="modal-overlay" id="leaderboardModal">
-            <div class="modal" style="max-width: 500px;">
-                <div class="modal-content">
-                    <h2>🏆 Leaderboard</h2>
-                    <div class="leaderboard-tabs" style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <button class="btn btn--small active" id="tabGlobal">Global</button>
-                        <button class="btn btn--small" id="tabPersonal">My Bests</button>
-                    </div>
-                    <div id="leaderboardList" style="text-align: left; max-height: 300px; overflow-y: auto;">
-                        <p>Loading...</p>
-                    </div>
-                    <button class="btn btn--outline modal-close" id="closeLeaderboardBtn">Close</button>
-                </div>
+            <!-- Professional Game Board -->
+            <div class="game-container" id="gameBoard">
+                <!-- Grid generated by JS -->
             </div>
-        </div>
 
-        <!-- Coinis Footer -->
-        <footer class="game-footer">
-            <div class="footer-content">
-                <div class="footer-branding">
-                    <span class="powered-by">Powered by</span>
-                    <a href="https://coinis.com" target="_blank" class="coinis-link">
+            <!-- Coinis Footer -->
+            <footer class="game-footer">
+                <div class="footer-content">
+                    <div class="footer-logo">
+                        <span>Powered by</span>
                         <strong>Coinis</strong>
-                    </a>
+                    </div>
+                    <div class="footer-links">
+                        <a href="https://coinis.com" target="_blank">About Coinis</a>
+                        <a href="#" class="footer-link">Privacy Policy</a>
+                        <a href="#" class="footer-link">Terms of Service</a>
+                    </div>
+                    <div class="footer-copy">© 2026 Coinis AdTech. All Rights Reserved.</div>
                 </div>
-                <div class="footer-description">
-                    Advanced AdTech Solutions × Modern Gaming
+                <!-- Commercial Ad Banner -->
+                <div class="ad-banner-container">
+                    <div class="ad-label">Advertisement</div>
+                    <div class="coinis-ad-banner">
+                        <div class="ad-content">
+                            <span class="ad-icon">🚀</span>
+                            <div class="ad-text">
+                                <strong>Boost Your Traffic with Coinis</strong>
+                                <span>Premium AdTech Solutions for Publishers & Advertisers</span>
+                            </div>
+                            <a href="https://coinis.com/register" target="_blank" class="ad-cta">Start Now</a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </main>
+
+        <!-- Community Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile" id="userProfileArea">
+                    <button id="loginBtnSidebar" class="btn btn--small btn--primary">Login to Save 💾</button>
+                    <div id="userInfo" style="display:none;">
+                        <img id="userAvatar" src="" alt="User">
+                        <span id="userNameDisplay">Guest</span>
+                        <button id="logoutBtn" class="btn--text">Logout</button>
+                    </div>
                 </div>
             </div>
-        </footer>
 
+            <div class="sidebar-section leaderboard-section">
+                <h3>🏆 Live Leaderboard</h3>
+                <div class="leaderboard-tabs">
+                    <!-- Tabs managed by JS if needed, or simple list -->
+                </div>
+                <div id="sidebarLeaderboardList" class="leaderboard-list">
+                    <div class="loading-state">Loading scores...</div>
+                </div>
+            </div>
 
+            <div class="sidebar-section chat-section">
+                <h3>💬 Community Chat</h3>
+                <div id="chatMessages" class="chat-messages">
+                    <div class="chat-message system">Welcome to Coinis Community!</div>
+                </div>
+                <div class="chat-input-area" id="chatInputArea">
+                    <input type="text" id="chatInput" placeholder="Login to chat..." disabled>
+                    <button id="chatSendBtn" disabled>➤</button>
+                    <div id="loginOverlay" class="login-overlay">
+                        <button class="btn btn--small btn--outline">Login to Chat</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <script type="module" src="firebase-config.js"></script>

@@ -7,29 +7,21 @@ class CoinisBoxworldOfficial {
         this.moves = 0;
         this.history = [];
         this.gameBoard = document.getElementById('gameBoard');
-        this.completedLevels = this.loadProgress();
-        this.isAnimating = false;
 
-        // Official Coinis game levels
+        // Load official levels
         if (window.classicLevels) {
             this.levels = [...window.classicLevels];
-            // Ensure we have 100 levels
-            if (this.levels.length < 100) {
-                console.warn(`Only loaded ${this.levels.length} levels from classic set.`);
-            }
         } else {
-            console.error("Critical: Classic levels not loaded!");
+            console.error("Critical: Levels not loaded!");
             this.levels = [];
         }
 
         this.initializeGame();
     }
 
-    // generateAdditionalLevels removed as we now have 100 static levels
-
-    initializeGame() {
+    async initializeGame() {
+        // 1. Setup Listeners
         this.setupEventListeners();
-        this.loadLevel(this.currentLevel);
         this.updateUI();
         this.showWelcomeMessage();
 

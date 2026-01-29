@@ -73,6 +73,12 @@ class CoinisBoxworldOfficial {
             this.showLevelSelection();
         });
 
+        // Solve Button
+        document.getElementById('solveBtn').addEventListener('click', () => {
+            this.addVisualFeedback();
+            this.solveLevel();
+        });
+
         // Modal controls
         document.getElementById('nextLevelBtn').addEventListener('click', () => {
             this.addVisualFeedback();
@@ -518,6 +524,70 @@ class CoinisBoxworldOfficial {
     loadProgress() {
         const saved = localStorage.getItem('coinis-boxworld-official-progress');
         return saved ? JSON.parse(saved) : {};
+    }
+
+    async solveLevel() {
+        if (this.isAnimating) return;
+
+        const btn = document.getElementById('solveBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>⏳</span> Thinking...';
+        btn.disabled = true;
+
+        // Yield to UI
+        await new Promise(r => requestAnimationFrame(r));
+        await new Promise(r => setTimeout(r, 50));
+
+        try {
+            console.log("Starting Auto-Solve for Level " + this.currentLevel);
+            // Restart to ensure clean state
+            this.restart();
+            await new Promise(r => setTimeout(r, 300)); // Wait for restart
+
+            const currentLevelData = this.levels[this.currentLevel - 1];
+            const solver = new SokobanSolver(currentLevelData.map);
+
+            // 8 seconds max solve time
+            const solutionPath = solver.solve(8000);
+
+            if (solutionPath) {
+                console.log("Solution found: " + solutionPath.length + " moves");
+                btn.innerHTML = '<span>🎬</span> Playing...';
+                await this.animateSolution(solutionPath);
+            } else {
+                console.warn("Solver timed out.");
+                alert("This level is too complex for the magic solver to find a solution quickly! Try manually.");
+            }
+        } catch (e) {
+            console.error("Solver error:", e);
+            alert("Error running solver: " + e.message);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async animateSolution(path) {
+        this.isAnimating = true;
+
+        for (const char of path) {
+            if (!this.isAnimating) break; // Allow interrupt
+
+            const moveDir = char.toLowerCase();
+
+            let dx = 0, dy = 0;
+            if (moveDir === 'u') dy = -1;
+            if (moveDir === 'd') dy = 1;
+            if (moveDir === 'l') dx = -1;
+            if (moveDir === 'r') dx = 1;
+
+            this.movePlayerWithAnimation(dx, dy);
+
+            // Replay speed
+            await new Promise(r => setTimeout(r, 150));
+        }
+
+        this.isAnimating = false;
     }
 }
 

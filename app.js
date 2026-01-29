@@ -536,73 +536,110 @@ class CoinisBoxworldOfficial {
     }
 
     saveProgress() {
-        localStorage.setItem('coinis-boxworld-official-progress', JSON.stringify(this.completedLevels));
+        if (this.currentUser) {
+            localStorage.setItem('coinis-boxworld-official-progress', JSON.stringify(this.completedLevels));
+            this.saveScoreToCloud(this.currentLevel, this.moves);
+        } else {
+            sessionStorage.setItem('coinis_progress_temp', JSON.stringify(this.completedLevels));
+        }
     }
 
     loadProgress() {
-        const saved = localStorage.getItem('coinis-boxworld-official-progress');
-        return saved ? JSON.parse(saved) : {};
+        if (this.currentUser) {
+            return JSON.parse(localStorage.getItem('coinis-boxworld-official-progress') || '{}');
+        } else {
+            return JSON.parse(sessionStorage.getItem('coinis_progress_temp') || '{}');
+        }
     }
 
     setupAuth() {
-        const loginBtn = document.getElementById('loginBtn');
-        const userDisplay = document.getElementById('userName');
-
-        if (!loginBtn) return;
-
-        loginBtn.addEventListener('click', async () => {
-            if (window.firebaseServices && window.firebaseServices.isConfigured()) {
-                try {
-                    const user = await window.firebaseServices.signInWithGoogle();
-                    console.log("Logged in:", user.displayName);
-                } catch (e) {
-                    alert("Authentication cancelled or failed.");
+        return new Promise((resolve) => {
+            const checkAuth = setInterval(() => {
+                if (window.firebaseServices && window.firebaseServices.isConfigured()) {
+                    clearInterval(checkAuth);
+                    window.firebaseServices.auth.onAuthStateChanged(user => {
+                        this.handleAuthChange(user);
+                        resolve();
+                    });
                 }
-            } else {
-                alert("Leaderboard service is not configured! Please see firebase-config.js.");
-            }
-        });
+            }, 100);
 
-        // Initialize Auth State Listener
-        // We use a simple interval to check if firebase is ready and set up listener
-        const checkAuth = setInterval(() => {
-            if (window.firebaseServices && window.firebaseServices.auth) {
-                clearInterval(checkAuth);
-                window.firebaseServices.auth.onAuthStateChanged(user => {
-                    if (user) {
-                        this.currentUser = user;
-                        loginBtn.style.display = 'none';
-                        userDisplay.style.display = 'inline-block';
-                        userDisplay.textContent = `👤 ${user.displayName.split(' ')[0]}`;
-                    } else {
-                        this.currentUser = null;
-                        loginBtn.style.display = 'inline-block';
-                        userDisplay.style.display = 'none';
-                    }
-                });
-            }
-        }, 500);
+            // Fallback if firebase fails
+            setTimeout(resolve, 3000);
+        });
     }
 
-    showLeaderboard() {
-        const modal = document.getElementById('leaderboardModal');
-        if (!modal) return;
+    handleAuthChange(user) {
+        this.currentUser = user;
+        const loginBtn = document.getElementById('loginBtnSidebar');
+        const userInfo = document.getElementById('userInfo');
+        const userAvatar = document.getElementById('userAvatar');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const chatInput = document.getElementById('chatInput');
+        const chatSendBtn = document.getElementById('chatSendBtn');
+        const loginOverlay = document.getElementById('loginOverlay');
 
-        modal.classList.add('active');
-        const list = document.getElementById('leaderboardList');
+        if (user) {
+            // UI State: Logged In
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (userInfo) userInfo.style.display = 'flex';
+            if (userAvatar) userAvatar.src = user.photoURL || 'assets/default-avatar.png';
+            if (userNameDisplay) userNameDisplay.textContent = user.displayName.split(' ')[0];
 
-        if (!window.firebaseServices || !window.firebaseServices.isConfigured()) {
-            list.innerHTML = "<p>Leaderboard service not configured.</p>";
-            return;
+            // Chat: Enable
+            if (chatInput) {
+                chatInput.disabled = false;
+                chatInput.placeholder = "Type a message...";
+            }
+            if (chatSendBtn) chatSendBtn.disabled = false;
+            if (loginOverlay) loginOverlay.style.display = 'none';
+
+            // Progress: Merge Session -> Cloud
+            this.mergeProgress();
+        } else {
+            // UI State: Guest
+            if (loginBtn) loginBtn.style.display = 'inline-block';
+            if (userInfo) userInfo.style.display = 'none';
+
+            // Chat: Disable
+            if (chatInput) {
+                chatInput.disabled = true;
+                chatInput.placeholder = "Login to chat...";
+            }
+            if (chatSendBtn) chatSendBtn.disabled = true;
+            if (loginOverlay) {
+                loginOverlay.style.display = 'flex';
+                const overlayBtn = loginOverlay.querySelector('button');
+                if (overlayBtn) overlayBtn.onclick = () => this.triggerLogin();
+            }
+
+            // Progress: Load Session or use empty
+            const session = sessionStorage.getItem('coinis_progress_temp');
+            this.completedLevels = session ? JSON.parse(session) : {};
         }
 
-        list.innerHTML = `
-            <div style="padding: 20px; text-align: center;">
-                <p><strong>Coming Soon!</strong></p>
-                <p>The backend is connected.</p>
-                <p>Top scores will appear here.</p>
-            </div>
-        `;
+        this.updateUI();
+    }
+
+    triggerLogin() {
+        if (window.firebaseServices) {
+            window.firebaseServices.signInWithGoogle().catch(console.error);
+        }
+    }
+
+    triggerLogout() {
+        if (window.firebaseServices) {
+            window.firebaseServices.signOutUser();
+            window.location.reload();
+        }
+    }
+
+    mergeProgress() {
+        const sessionProgress = JSON.parse(sessionStorage.getItem('coinis_progress_temp') || '{}');
+        const localProgress = JSON.parse(localStorage.getItem('coinis-boxworld-official-progress') || '{}');
+
+        this.completedLevels = { ...localProgress, ...sessionProgress };
+        this.saveProgress(); // This will now save to localStorage since currentUser is true
     }
 
     saveScoreToCloud(level, moves) {

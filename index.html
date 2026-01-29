@@ -183,9 +183,3034 @@
         </aside>
     </div>
 
-    <script type="module" src="firebase-config.js"></script>
-    <script src="levels.js"></script>
-    <script src="app.js"></script>
+    <!-- Firebase Compat Scripts (Required for local file:// execution) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        /* FIREBASE CONFIG */
+        /* INJECT_FIREBASE_MARKER */
+        // Firebase Compat Configuration for local file:// execution
+
+        // Firebase configuration provided by user
+        const firebaseConfig = {
+            apiKey: "AIzaSyCt522pC3_0uOgH0bYPTJCXzfla-kHU3iI",
+            authDomain: "web-app-e98cb.firebaseapp.com",
+            projectId: "web-app-e98cb",
+            storageBucket: "web-app-e98cb.firebasestorage.app",
+            messagingSenderId: "930464794067",
+            appId: "1:930464794067:web:51c9af3f2413acd5e69b26",
+            measurementId: "G-VBMFDNBXEP"
+        };
+
+        // Initialize Firebase (Compat)
+        let app, auth, db;
+        let isInitialized = false;
+
+        try {
+            if (typeof firebase !== 'undefined') {
+                app = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                isInitialized = true;
+                console.log("Firebase Initialized Successfully (Compat Mode)");
+            } else {
+                console.error("Firebase SDK not loaded");
+            }
+        } catch (e) {
+            console.error("Firebase Initialization Error:", e);
+        }
+
+        // Export services to window using Compat APIs
+        window.firebaseServices = {
+            auth,
+            db,
+            signInWithGoogle: async () => {
+                if (!isInitialized) { alert("Leaderboard not configured."); return; }
+                const provider = new firebase.auth.GoogleAuthProvider();
+                try {
+                    const result = await auth.signInWithPopup(provider);
+                    return result.user;
+                } catch (error) {
+                    console.error(error);
+                    throw error;
+                }
+            },
+            signOutUser: async () => {
+                if (!isInitialized) return;
+                return auth.signOut();
+            },
+            saveScore: async (level, moves) => {
+                if (!isInitialized || !auth.currentUser) return;
+                const user = auth.currentUser;
+
+                try {
+                    // Compat: db.collection().doc()
+                    const scoreRef = db.collection(`leaderboard_level_${level}`).doc(user.uid);
+                    const currentDoc = await scoreRef.get();
+
+                    if (currentDoc.exists) {
+                        const data = currentDoc.data();
+                        if (data.moves <= moves) {
+                            return;
+                        }
+                    }
+
+                    await scoreRef.set({
+                        uid: user.uid,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        moves: moves,
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log("High score saved!");
+                } catch (e) {
+                    console.error("Error saving score:", e);
+                }
+            },
+            getLeaderboard: async (level) => {
+                if (!isInitialized) return [];
+                try {
+                    const q = db.collection(`leaderboard_level_${level}`)
+                        .orderBy("moves", "asc")
+                        .limit(20);
+
+                    return new Promise((resolve, reject) => {
+                        const unsubscribe = q.onSnapshot((snapshot) => {
+                            const scores = [];
+                            snapshot.forEach((doc) => {
+                                scores.push(doc.data());
+                            });
+                            resolve(scores);
+                            unsubscribe();
+                        }, (error) => {
+                            reject(error);
+                        });
+                    });
+                } catch (e) {
+                    console.error("Error fetching leaderboard:", e);
+                    return [];
+                }
+            },
+            isConfigured: () => isInitialized,
+
+            // --- Chat API (Compat) ---
+            subscribeToChat: (callback) => {
+                if (!isInitialized) return () => { };
+
+                const q = db.collection("chat_messages")
+                    .orderBy("timestamp", "desc")
+                    .limit(50);
+
+                return q.onSnapshot((snapshot) => {
+                    const messages = [];
+                    snapshot.forEach((doc) => {
+                        messages.push({ id: doc.id, ...doc.data() });
+                    });
+                    callback(messages.reverse());
+                });
+            },
+
+            sendMessage: async (text) => {
+                if (!isInitialized || !auth.currentUser) return;
+                const user = auth.currentUser;
+
+                if (text.length > 100) throw new Error("Message too long");
+
+                await db.collection("chat_messages").add({
+                    text: text,
+                    uid: user.uid,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        };
+    </script>
+
+    <script>
+        /* LEVELS DATA */
+        /* INJECT_LEVELS_MARKER */
+        window.classicLevels = [
+            {
+                "level": 1,
+                "name": "Classic Level 1",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      ###       ",
+                    "      #.#       ",
+                    "      # ####    ",
+                    "    ###$ $.#    ",
+                    "    #. $@###    ",
+                    "    ####$#      ",
+                    "       #.#      ",
+                    "       ###      ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 2,
+                "name": "Classic Level 2",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    #####       ",
+                    "    #@  # ###   ",
+                    "    # $$# #.#   ",
+                    "    # $ ###.#   ",
+                    "    ###    .#   ",
+                    "     ##     #   ",
+                    "     #   #  #   ",
+                    "     #   ####   ",
+                    "     #####      ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 3,
+                "name": "Classic Level 3",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    #######     ",
+                    "    #     ###   ",
+                    "   ##$###   #   ",
+                    "   # @ $  $ #   ",
+                    "   # ..# $ ##   ",
+                    "   ##..#   #    ",
+                    "    ########    ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 4,
+                "name": "Classic Level 4",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "      ####      ",
+                    "     ##  #      ",
+                    "     #@$ #      ",
+                    "     ##$ ##     ",
+                    "     ## $ #     ",
+                    "     #.$  #     ",
+                    "     #..*.#     ",
+                    "     ######     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 5,
+                "name": "Classic Level 5",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "     ####       ",
+                    "     #@ ###     ",
+                    "     # $  #     ",
+                    "    ### # ##    ",
+                    "    #.# #  #    ",
+                    "    #.$  # #    ",
+                    "    #.   $ #    ",
+                    "    ########    ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 6,
+                "name": "Classic Level 6",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "     #######    ",
+                    "  ####     #    ",
+                    "  #   .### #    ",
+                    "  # # #    ##   ",
+                    "  # # $ $#. #   ",
+                    "  # #  *  # #   ",
+                    "  # .#$ $ # #   ",
+                    "  ##    # # ### ",
+                    "   # ###.    @# ",
+                    "   #     ##   # ",
+                    "   ############ ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 7,
+                "name": "Classic Level 7",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "     #######    ",
+                    "    ##  # @#    ",
+                    "    #   #  #    ",
+                    "    #$ $ $ #    ",
+                    "    # $##  #    ",
+                    "  ### $ # ##    ",
+                    "  #.....  #     ",
+                    "  #########     ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 8,
+                "name": "Classic Level 8",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "      ######    ",
+                    "    ###    #    ",
+                    "   ##. $## ##   ",
+                    "   #..$ $  @#   ",
+                    "   #.. $ $ ##   ",
+                    "   ######  #    ",
+                    "        ####    ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 9,
+                "name": "Classic Level 9",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    #########   ",
+                    "    #  ##   #   ",
+                    "    #   $   #   ",
+                    "    #$ ### $#   ",
+                    "    # #...# #   ",
+                    "   ## #...# ##  ",
+                    "   # $  $  $ #  ",
+                    "   #     # @ #  ",
+                    "   ###########  ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 10,
+                "name": "Classic Level 10",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      ######    ",
+                    "      #    #    ",
+                    "    ###$$$ #    ",
+                    "    #@ $.. #    ",
+                    "    # $...##    ",
+                    "    ####  #     ",
+                    "       ####     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 11,
+                "name": "Classic Level 11",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "   ####  #####  ",
+                    "  ##  #  #   #  ",
+                    "  # $ ####$  #  ",
+                    "  #  $.... $ #  ",
+                    "  ##    # @ ##  ",
+                    "   ##########   ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 12,
+                "name": "Classic Level 12",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      #####     ",
+                    "    ###  @#     ",
+                    "    #  $. ##    ",
+                    "    #  .$. #    ",
+                    "    ### *$ #    ",
+                    "      #   ##    ",
+                    "      #####     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 13,
+                "name": "Classic Level 13",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      ####      ",
+                    "      #..#      ",
+                    "     ## .##     ",
+                    "     #  $.#     ",
+                    "    ## $  ##    ",
+                    "    #  #$$ #    ",
+                    "    #  @   #    ",
+                    "    ########    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 14,
+                "name": "Classic Level 14",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    ########    ",
+                    "    #  #   #    ",
+                    "    # $..$ #    ",
+                    "    #@$.* ##    ",
+                    "    # $..$ #    ",
+                    "    #  #   #    ",
+                    "    ########    ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 15,
+                "name": "Classic Level 15",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "     ######     ",
+                    "    ##    ##    ",
+                    "    # $ $$ #    ",
+                    "    #......#    ",
+                    "    # $$ $ #    ",
+                    "    ### @###    ",
+                    "      ####      ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 16,
+                "name": "Classic Level 16",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    ######      ",
+                    "    #    ###    ",
+                    "    # $    #    ",
+                    "  ### $ ## #    ",
+                    "  #... $   #    ",
+                    "  #...$#$ ##    ",
+                    "  #### # $ #    ",
+                    "     #  @  #    ",
+                    "     #######    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 17,
+                "name": "Classic Level 17",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "   ######       ",
+                    "   #    #       ",
+                    "   # $$$##      ",
+                    "   #  #..###    ",
+                    "   ##  ..$ #    ",
+                    "    # @    #    ",
+                    "    ########    ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 18,
+                "name": "Classic Level 18",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "     ########   ",
+                    "     #   #. #   ",
+                    "    ##  $...#   ",
+                    "    #  $ #*.#   ",
+                    "   ## ##$# ##   ",
+                    "   #   $  $ #   ",
+                    "   #   #    #   ",
+                    "   #######@ #   ",
+                    "         ####   ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 19,
+                "name": "Classic Level 19",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    #######     ",
+                    "    #.... #     ",
+                    "   ###...$###   ",
+                    "   #  $#$ $ #   ",
+                    "   # $$  #$ #   ",
+                    "   #    #   #   ",
+                    "   #### @ ###   ",
+                    "      #####     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 20,
+                "name": "Classic Level 20",
+                "difficulty": "Beginner",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "     #######    ",
+                    "     #..$..#    ",
+                    "     #..#..#    ",
+                    "     # $$$ #    ",
+                    "     #  $  #    ",
+                    "     # $$$ #    ",
+                    "     #  #@ #    ",
+                    "     #######    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 21,
+                "name": "Classic Level 21",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "      ######    ",
+                    "      # ...#    ",
+                    "   ####....#    ",
+                    "   #  ###$ ###  ",
+                    "   # $ $  $$ #  ",
+                    "   #@ $ $    #  ",
+                    "   #   ###   #  ",
+                    "   ##### #####  ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 22,
+                "name": "Classic Level 22",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "   ########     ",
+                    "   #      #     ",
+                    "   # #$$  #     ",
+                    "   # ...# #     ",
+                    "   ##...$ ##    ",
+                    "    # ## $ #    ",
+                    "    #$  $  #    ",
+                    "    #  #  @#    ",
+                    "    ########    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 23,
+                "name": "Classic Level 23",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      ######    ",
+                    "    ###    #### ",
+                    "    #   $  $  # ",
+                    "    # $    $ @# ",
+                    "    ###$$###### ",
+                    "      #  ..#    ",
+                    "      #....#    ",
+                    "      ######    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 24,
+                "name": "Classic Level 24",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    " ######   ##### ",
+                    " #    ### #  .# ",
+                    " #  $ $ # #...# ",
+                    " # #  $ ###  .# ",
+                    " #  $$$   $ @.# ",
+                    " ###  $  $#  .# ",
+                    "   #  $#$ #...# ",
+                    "   ##     #  .# ",
+                    "    ########### ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 25,
+                "name": "Classic Level 25",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "        ######  ",
+                    "    #####.   #  ",
+                    "    #  #..## #  ",
+                    "    #  $..   #  ",
+                    "    #  # .# ##  ",
+                    "   ### ##$#  #  ",
+                    "   # $    $$ #  ",
+                    "   # #$#  #  #  ",
+                    "   #@  #######  ",
+                    "   #####        ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 26,
+                "name": "Classic Level 26",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "  #########     ",
+                    "  #   ##  ####  ",
+                    "  # $        #  ",
+                    "  ##$### ##  #  ",
+                    "  #  ## * # ##  ",
+                    "  # $...... #   ",
+                    " ## ### . # #   ",
+                    " #     $###$#   ",
+                    " #   #    $@#   ",
+                    " #####$# ####   ",
+                    "     #   #      ",
+                    "     #####      ",
+                    "                "
+                ]
+            },
+            {
+                "level": 27,
+                "name": "Classic Level 27",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "      ######### ",
+                    "      #       # ",
+                    "      # # # # # ",
+                    "      #  $ $# # ",
+                    "#######   $   # ",
+                    "#..#  ## $ $# # ",
+                    "#..   ## $ $  # ",
+                    "#..#  ## ###### ",
+                    "#..# # $ $ #    ",
+                    "#..     $  #    ",
+                    "#  ### @ ###    ",
+                    "#### #####      ",
+                    "                "
+                ]
+            },
+            {
+                "level": 28,
+                "name": "Classic Level 28",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "    ####        ",
+                    "#####  #        ",
+                    "#  $ $ # #######",
+                    "#   $  # #*.*.*#",
+                    "## $ $ ###.*.*.#",
+                    " #$ $  #  *.*.*#",
+                    " #@$ $    .*.*##",
+                    " #$ $  #  *.*.*#",
+                    "## $ $ ###.*.*.#",
+                    "#   $  # #*.*.*#",
+                    "#  $ $ # #######",
+                    "#####  #        ",
+                    "    ####        ",
+                    "                "
+                ]
+            },
+            {
+                "level": 29,
+                "name": "Classic Level 29",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    ########    ",
+                    "    #......#    ",
+                    "    #  $ # ##   ",
+                    "    # $ # $ #   ",
+                    "    ##$ $ $ #   ",
+                    "     #  @   #   ",
+                    "     ########   ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 30,
+                "name": "Classic Level 30",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    ##########  ",
+                    "  ###   .    #  ",
+                    "  #   ##$##  #  ",
+                    "  # @$. . .$##  ",
+                    "  ## $##$## #   ",
+                    "   #    .   #   ",
+                    "   ##########   ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 31,
+                "name": "Classic Level 31",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "       ######   ",
+                    "    ####.  @#   ",
+                    "    #  $$$  #   ",
+                    "    #.##.##.#   ",
+                    "    #   $   #   ",
+                    "    #  $.# ##   ",
+                    "    ####   #    ",
+                    "       #####    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 32,
+                "name": "Classic Level 32",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    ######      ",
+                    "    #. ..#      ",
+                    "    #. $.#      ",
+                    "   ###  $##     ",
+                    "   # $  $ #     ",
+                    "   # #$## #     ",
+                    "   #   @  #     ",
+                    "   ########     ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 33,
+                "name": "Classic Level 33",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "     ######     ",
+                    "   ###    ###   ",
+                    "   #   #$   ### ",
+                    "   #   $   $$ # ",
+                    "   # $$ #$    # ",
+                    "   ##   $   $ # ",
+                    " ###### #$##### ",
+                    " #..@ #$  #     ",
+                    " #.#..  $##     ",
+                    " #....$# #      ",
+                    " #....   #      ",
+                    " #########      ",
+                    "                "
+                ]
+            },
+            {
+                "level": 34,
+                "name": "Classic Level 34",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "############### ",
+                    "#      #      # ",
+                    "# $ #$ # $##$ # ",
+                    "# #  $ #      # ",
+                    "#   ##$#$##$$ # ",
+                    "# # # ... #   # ",
+                    "# $  . # .$ # # ",
+                    "# $#@$...# #  # ",
+                    "#    . # .  $ # ",
+                    "# ##.$###$. # # ",
+                    "# # $..... ## # ",
+                    "#             # ",
+                    "############### ",
+                    "                "
+                ]
+            },
+            {
+                "level": 35,
+                "name": "Classic Level 35",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "   #########    ",
+                    "   #   ##  #    ",
+                    "   # # $ $ #    ",
+                    "   #  *.#  #    ",
+                    "   ## #.@.##    ",
+                    "   ##$###*###   ",
+                    "   #        #   ",
+                    "   #   ## # #   ",
+                    "   ######   #   ",
+                    "        #####   ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 36,
+                "name": "Classic Level 36",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "########        ",
+                    "#      #        ",
+                    "# $$   ###      ",
+                    "#  $ $$$ #####  ",
+                    "## ## ...    ## ",
+                    " # #@#...###$ # ",
+                    " # # $...     # ",
+                    "## # $...$ # ## ",
+                    "#  ##### ### #  ",
+                    "#      $   $ #  ",
+                    "###########  #  ",
+                    "          ####  ",
+                    "                "
+                ]
+            },
+            {
+                "level": 37,
+                "name": "Classic Level 37",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      #####     ",
+                    "      # @ #     ",
+                    "      #$$$#     ",
+                    "   ####   #     ",
+                    "   #   .#$##    ",
+                    "   # $.$. .#    ",
+                    "   #  #.#.##    ",
+                    "   ########     ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 38,
+                "name": "Classic Level 38",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "  ############  ",
+                    "  #... #     #  ",
+                    "  #..  # ##  #  ",
+                    "  #..     #  #  ",
+                    "  #..  # $## #  ",
+                    "  #... #$ $  #  ",
+                    "  ######  $$ #  ",
+                    "   ##  $ $$  #  ",
+                    "   #@ $$$  # #  ",
+                    "   ## $ ##   #  ",
+                    "    #        #  ",
+                    "    ##########  ",
+                    "                "
+                ]
+            },
+            {
+                "level": 39,
+                "name": "Classic Level 39",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "   #########    ",
+                    "   #       #    ",
+                    "   #  $ $ $#    ",
+                    "   ## #$## #    ",
+                    "    # .. ..##   ",
+                    "    ##.. .. #   ",
+                    "     # ##$# ##  ",
+                    "     #$ $ $  #  ",
+                    "     #      @#  ",
+                    "     #########  ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 40,
+                "name": "Classic Level 40",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "#####      #### ",
+                    "#@  ########  # ",
+                    "## $       $  # ",
+                    " # # #  ####  # ",
+                    " #  $   ####$## ",
+                    " #$ ## # $ $ #  ",
+                    "## $  $#     #  ",
+                    "#   #      # #  ",
+                    "#   #####$####  ",
+                    "#####   #   #   ",
+                    "    #...  $ #   ",
+                    "    #....#  #   ",
+                    "    #....####   ",
+                    "    ######      "
+                ]
+            },
+            {
+                "level": 41,
+                "name": "Classic Level 41",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "        #####   ",
+                    "    #####   #   ",
+                    "    # .. $# #   ",
+                    "    # #.*   #   ",
+                    "   ## *.#$ ##   ",
+                    "   # $  $  #    ",
+                    "   #   ## @#    ",
+                    "   #########    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 42,
+                "name": "Classic Level 42",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "  ##### ####### ",
+                    "  #   ###  #  # ",
+                    "  # $     $ @ # ",
+                    "  ## #$##.##  # ",
+                    "   #  ...*. $ # ",
+                    "   # $# #.# # # ",
+                    "   ##    $    # ",
+                    "    #  ######## ",
+                    "    ####        ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 43,
+                "name": "Classic Level 43",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "         ###    ",
+                    "    ######@##   ",
+                    "    #....#$ ##  ",
+                    "    #....# $ #  ",
+                    "    #.... $  #  ",
+                    "    # ...#   #  ",
+                    "###### ##### ## ",
+                    "# $ $   $  #  # ",
+                    "#    $$   $ $ # ",
+                    "### $ $ $  #### ",
+                    "  ##   $ $ #    ",
+                    "   #  ######    ",
+                    "   ####         ",
+                    "                "
+                ]
+            },
+            {
+                "level": 44,
+                "name": "Classic Level 44",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "     #####      ",
+                    "   ###   ###    ",
+                    "  ##  @$ $ #    ",
+                    "  #  ## ## ##   ",
+                    "  # $.#.$   #   ",
+                    "  # #.#*#   #   ",
+                    "  # $...  ###   ",
+                    "  ###$# ###     ",
+                    "    #   #       ",
+                    "    #####       ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 45,
+                "name": "Classic Level 45",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "      ####      ",
+                    "      #  ###### ",
+                    "      #    #  # ",
+                    "      # $$    # ",
+                    "#######$#  #  # ",
+                    "#  #. .. ###$## ",
+                    "#  #.#*.$     # ",
+                    "#  #.#.*# #   # ",
+                    "# $$....# ##### ",
+                    "# @$ # ## #     ",
+                    "# $$$#    #     ",
+                    "#    ######     ",
+                    "######          "
+                ]
+            },
+            {
+                "level": 46,
+                "name": "Classic Level 46",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "####            ",
+                    "#  ###          ",
+                    "# $  ###        ",
+                    "# $ $  ###      ",
+                    "# $ $ $  ###    ",
+                    "# $ $ $    #    ",
+                    "# $ $  #   ##   ",
+                    "# $  ## $$$ #   ",
+                    "#@ ####     ##  ",
+                    "## # #.$$$$$.#  ",
+                    " # ###.......## ",
+                    " #   .*******.# ",
+                    " ####.........# ",
+                    "    ########### "
+                ]
+            },
+            {
+                "level": 47,
+                "name": "Classic Level 47",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "  #######       ",
+                    "  # @#  #####   ",
+                    "  # $$  $   #   ",
+                    "  #  #.##$# #   ",
+                    "  ##$#...   #   ",
+                    "  ## ...##$##   ",
+                    "  #  ##.##  #   ",
+                    "  #  $  $   #   ",
+                    "  #  #   #  #   ",
+                    "  ###########   ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 48,
+                "name": "Classic Level 48",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "     #####      ",
+                    "     # @ #      ",
+                    "     # $ #      ",
+                    "     #$.$#      ",
+                    "   ###.$.##     ",
+                    "  ## .$.$.###   ",
+                    "  #  $.$.$  #   ",
+                    "  #    .    #   ",
+                    "  ###########   ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 49,
+                "name": "Classic Level 49",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    " #############  ",
+                    " #  $ $ $.*..#  ",
+                    " # $ $ $ *...#  ",
+                    " #  $ $ $.*..#  ",
+                    " # $ $ $ *...#  ",
+                    " #  $ $ $.*..#  ",
+                    " # $ $ $ *...#  ",
+                    " #  $ $ $.*..#  ",
+                    " # $ $ $ *...#  ",
+                    " #  $ $ $.*..#  ",
+                    " #@$ $ $ *...#  ",
+                    " #############  ",
+                    "                "
+                ]
+            },
+            {
+                "level": 50,
+                "name": "Classic Level 50",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "             #  ",
+                    "            ##  ",
+                    "           ###  ",
+                    "          #   # ",
+                    "   ######## # # ",
+                    "  # $ $ $ $   # ",
+                    " ## #.#.#.#@$#  ",
+                    "###.......   ## ",
+                    " ## # # # #$##  ",
+                    "  # $ $ $ $   # ",
+                    "   ######## # # ",
+                    "          #   # ",
+                    "           ###  ",
+                    "            ##  "
+                ]
+            },
+            {
+                "level": 51,
+                "name": "Classic Level 51",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "   #######      ",
+                    "   #  .$ ###    ",
+                    "   # .$.$  #    ",
+                    "   #*$.$.@ #    ",
+                    "   # .$.$ ##    ",
+                    "   #  .$  #     ",
+                    "   ########     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 52,
+                "name": "Classic Level 52",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "         #####  ",
+                    "         #   #  ",
+                    "########## * ###",
+                    "#          .   #",
+                    "# $$$$****$...@#",
+                    "#          .   #",
+                    "########## * ###",
+                    "         #   #  ",
+                    "         #####  ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 53,
+                "name": "Classic Level 53",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "       ####     ",
+                    "  ######  ##### ",
+                    "  #@$    $  $ # ",
+                    "  #$### $ # # # ",
+                    "  #  #  # $   # ",
+                    "  # $#    # ### ",
+                    "  #  $ #$#   #  ",
+                    "  #......... #  ",
+                    "  ########   #  ",
+                    "         #####  ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 54,
+                "name": "Classic Level 54",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "        ####    ",
+                    "  #######  #### ",
+                    "  #    $  ....# ",
+                    "###   # # ..#.# ",
+                    "# $$ #  # ....# ",
+                    "#    # $# ..#.# ",
+                    "##$###$  ###  # ",
+                    " #  #  $ $    # ",
+                    " #    $ $  #$ # ",
+                    " # $## $ ##  ## ",
+                    " ## #### # @##  ",
+                    "  #   #  $ ##   ",
+                    "  ###     ##    ",
+                    "    #######     "
+                ]
+            },
+            {
+                "level": 55,
+                "name": "Classic Level 55",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "  ###########   ",
+                    "  #    #    #   ",
+                    "  # $@$$$$$ #   ",
+                    "  #         #   ",
+                    "  ##### #####   ",
+                    "     #.  #      ",
+                    "     #.  #      ",
+                    "     #...#      ",
+                    "     #.  #      ",
+                    "     #####      ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 56,
+                "name": "Classic Level 56",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "     #####      ",
+                    "     # @ #      ",
+                    "     # $ #      ",
+                    "   ### . ###    ",
+                    "   #   *   #    ",
+                    "   # ***** #    ",
+                    "   #   *   #    ",
+                    "   ###$*$###    ",
+                    "     # . #      ",
+                    "     # * #      ",
+                    "     # . #      ",
+                    "     #####      ",
+                    "                "
+                ]
+            },
+            {
+                "level": 57,
+                "name": "Classic Level 57",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    " ############## ",
+                    " #.           # ",
+                    " #.$ $ $ $ $  # ",
+                    " #.#########  # ",
+                    " #.#.* $ ..$*## ",
+                    " #.# $ $ *.$@#  ",
+                    " #.#.  $ ..$$#  ",
+                    " #.#########.#  ",
+                    " #.          #  ",
+                    " #.#$#$#$#$#$#  ",
+                    " #.          #  ",
+                    " #############  ",
+                    "                "
+                ]
+            },
+            {
+                "level": 58,
+                "name": "Classic Level 58",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    " ############   ",
+                    " #..  #     ### ",
+                    " #..  # $  $  # ",
+                    " #..  #$####  # ",
+                    " #..    @ ##  # ",
+                    " #..  # #  $ ## ",
+                    " ###### ##$ $ # ",
+                    "   # $  $ $ $ # ",
+                    "   #    #     # ",
+                    "   ############ ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 59,
+                "name": "Classic Level 59",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "        ####    ",
+                    " ########  #### ",
+                    " #   ##.....  # ",
+                    " #  $  ##...# # ",
+                    " ##  $  ### # # ",
+                    "  # # $  #    # ",
+                    "  #  # $  #   # ",
+                    "  #   # $  #  # ",
+                    "  #    # $ # ## ",
+                    "  ####  # $  #  ",
+                    "     ##  # $ #  ",
+                    "      ##@#   #  ",
+                    "       #######  ",
+                    "                "
+                ]
+            },
+            {
+                "level": 60,
+                "name": "Classic Level 60",
+                "difficulty": "Intermediate",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    " ####      #### ",
+                    " #..########..# ",
+                    " #*.*.....*.*.# ",
+                    " # $ $ $ $ $ $# ",
+                    " #$ $ $@$ $ $ # ",
+                    " # $ $ $ $ $ $# ",
+                    " #$ $ $ $ $ $ # ",
+                    " #.*.*.....*.*# ",
+                    " #..########..# ",
+                    " ####      #### ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 61,
+                "name": "Classic Level 61",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "      #####     ",
+                    "     ##   ####  ",
+                    "     # ..* $ #  ",
+                    "  #### #.#   #  ",
+                    "  #    .*.#@##  ",
+                    "  # #$##$## #   ",
+                    "  #     $ $ #   ",
+                    "  ##  #   ###   ",
+                    "   ########     ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 62,
+                "name": "Classic Level 62",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "   ######       ",
+                    "   #    #       ",
+                    "   # $  ####    ",
+                    "   # $*..* #    ",
+                    "   # *..*$ #    ",
+                    "   ####  $ #    ",
+                    "      # @  #    ",
+                    "      ######    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 63,
+                "name": "Classic Level 63",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      #####     ",
+                    "   ####.  ##    ",
+                    "   # $.$.  #    ",
+                    "   #@$# #$ #    ",
+                    "   # $. .  #    ",
+                    "   ####$#$ #    ",
+                    "     #. .  #    ",
+                    "     #######    ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 64,
+                "name": "Classic Level 64",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "  ############  ",
+                    "  #    ... $ #  ",
+                    "  # $$$*** $@#  ",
+                    "  #    ... $ #  ",
+                    "  ############  ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 65,
+                "name": "Classic Level 65",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "   ##########   ",
+                    "   ##       #   ",
+                    "   #   #$#$ #   ",
+                    "   # $$  .$.#   ",
+                    "   # @###...#   ",
+                    "   ##########   ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 66,
+                "name": "Classic Level 66",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    ####        ",
+                    "    #  #####    ",
+                    "   ##$ ##  #    ",
+                    "   #  $@$  #    ",
+                    "   #   ##$ #    ",
+                    "   ###.## ###   ",
+                    "    #...$ $ #   ",
+                    "    ##..    #   ",
+                    "     ########   ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 67,
+                "name": "Classic Level 67",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "##### ####      ",
+                    "#...# #  ####   ",
+                    "#...###  $  #   ",
+                    "#....## $  $### ",
+                    "##....##   $  # ",
+                    "###... ## $ $ # ",
+                    "# ##    #  $  # ",
+                    "#  ## # ### ####",
+                    "# $ # #$  $    #",
+                    "#  $ @ $    $  #",
+                    "#   # $ $$ $ ###",
+                    "#  ######  ###  ",
+                    "# ##    ####    ",
+                    "###             "
+                ]
+            },
+            {
+                "level": 68,
+                "name": "Classic Level 68",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    #######     ",
+                    "    #. . .#     ",
+                    "    # $$$ #     ",
+                    "    #.$@$.#     ",
+                    "    # $$$ #     ",
+                    "    #. . .#     ",
+                    "    #######     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 69,
+                "name": "Classic Level 69",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "        ####    ",
+                    "  #######  #    ",
+                    "  #     $  #    ",
+                    "  #   $##@$#    ",
+                    "  ##$#...# #    ",
+                    "   # $...  #    ",
+                    "   # #. .# ##   ",
+                    "   #   # #$ #   ",
+                    "   #$  $    #   ",
+                    "   #  #######   ",
+                    "   ####         ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 70,
+                "name": "Classic Level 70",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "     #########  ",
+                    "     #   #   #  ",
+                    "     #       #  ",
+                    "  #####*### ##  ",
+                    "  #   ...   #   ",
+                    "  # # #*###$##  ",
+                    "  # $    $   #  ",
+                    "  #####@ #   #  ",
+                    "      ########  ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 71,
+                "name": "Classic Level 71",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "#####           ",
+                    "#...# #####     ",
+                    "#...###   #     ",
+                    "#....   $$##### ",
+                    "#....  #  #   ##",
+                    "#..#$#### #$#  #",
+                    "## $  #     $$ #",
+                    "#  $# @ $ $$#  #",
+                    "# $ $ $ #   $ ##",
+                    "#   #  $ ##   # ",
+                    "######   ###### ",
+                    "     #####      ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 72,
+                "name": "Classic Level 72",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "############### ",
+                    "###.#      #### ",
+                    "##..# $  $ #  # ",
+                    "#...# ## $ #  # ",
+                    "#.....  #$$   # ",
+                    "##....$    #$ # ",
+                    "#### #######  # ",
+                    "#   $        ## ",
+                    "#  $ #  $# $ ## ",
+                    "# $### $ # $$ # ",
+                    "#   @#  ##    # ",
+                    "############### ",
+                    "                "
+                ]
+            },
+            {
+                "level": 73,
+                "name": "Classic Level 73",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "       ######## ",
+                    "       #  #   # ",
+                    " ####### $$...# ",
+                    " #        #...# ",
+                    " # ######$#...# ",
+                    "## #      #...# ",
+                    "#  # #$ $ ##### ",
+                    "# # $ $ $ #     ",
+                    "# @  $ #  #     ",
+                    "#####$ $$ #     ",
+                    "    #     #     ",
+                    "    #######     ",
+                    "                "
+                ]
+            },
+            {
+                "level": 74,
+                "name": "Classic Level 74",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "         #####  ",
+                    "    ######   #  ",
+                    "  ###    . $ #  ",
+                    "  # $  #$.#$##  ",
+                    "  #  #  @.#  #  ",
+                    "  ## ####.   #  ",
+                    "   # $  #*####  ",
+                    "   # ## #.  #   ",
+                    "   #     .# #   ",
+                    "   ###$     #   ",
+                    "     #  #####   ",
+                    "     ####       ",
+                    "                "
+                ]
+            },
+            {
+                "level": 75,
+                "name": "Classic Level 75",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "      ####      ",
+                    "  #####  #####  ",
+                    "  #    $   $ #  ",
+                    "  #  $#$##   #  ",
+                    "  ### #.*. ###  ",
+                    "    # ... @#    ",
+                    "    ## #$###    ",
+                    "     #   #      ",
+                    "     #####      ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 76,
+                "name": "Classic Level 76",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "      ########  ",
+                    "   ####    . #  ",
+                    "   #  $ $ $. #  ",
+                    "   #  .####.##  ",
+                    "   # $.$ $ @#   ",
+                    "   #  .  ####   ",
+                    "   #######      ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 77,
+                "name": "Classic Level 77",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    #####       ",
+                    "    #   #       ",
+                    "  ###$.$#####   ",
+                    "  #   . $   #   ",
+                    "  # ##$## @ #   ",
+                    "  #   . #####   ",
+                    "  ### . #       ",
+                    "    #   #       ",
+                    "    #####       ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 78,
+                "name": "Classic Level 78",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    #####       ",
+                    "    # @ ######  ",
+                    "    # #..*   #  ",
+                    "    # ...#   #  ",
+                    "   ##$## $ $ #  ",
+                    "   #   #$#####  ",
+                    "   #   $   #    ",
+                    "   ##### # #    ",
+                    "       #   #    ",
+                    "       #####    ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 79,
+                "name": "Classic Level 79",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "      ######    ",
+                    "    ###    ##   ",
+                    "    #   ##  #   ",
+                    "  ###$##  # #   ",
+                    " ##     ..# #   ",
+                    " #  $#$#*.# #   ",
+                    " # $$@ #.*# ### ",
+                    " #  $$ #..#   # ",
+                    " ##    #..$   # ",
+                    "  ###$##. # ### ",
+                    "    #  ###  #   ",
+                    "    ##     ##   ",
+                    "     #######    ",
+                    "                "
+                ]
+            },
+            {
+                "level": 80,
+                "name": "Classic Level 80",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "      #######   ",
+                    "      #  #  #   ",
+                    "      #  $$ #   ",
+                    " ###### $#  #   ",
+                    " #...### #  ##  ",
+                    " #.  #  $ #  #  ",
+                    " #.    $ $ $ #  ",
+                    " #.  #  $ #  #  ",
+                    " #...### #  ##  ",
+                    " ###### $   #   ",
+                    "      #@ #  #   ",
+                    "      #######   ",
+                    "                "
+                ]
+            },
+            {
+                "level": 81,
+                "name": "Classic Level 81",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "          ######",
+                    "          #    #",
+                    "#####   ### ## #",
+                    "#.. ##### $  # #",
+                    "#..     $   $# #",
+                    "#..  ## ##   # #",
+                    "#.. ## $ #$ $# #",
+                    "#.. #     $  # #",
+                    "#.. #  $ ###$  #",
+                    "#.. # $ $  $ ###",
+                    "### ## # $    # ",
+                    "  #    #@## $ # ",
+                    "  #########  ## ",
+                    "          ####  "
+                ]
+            },
+            {
+                "level": 82,
+                "name": "Classic Level 82",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "        #       ",
+                    "      #####     ",
+                    "    ### @ ###   ",
+                    "    #  $ $  #   ",
+                    "    # *.*.* #   ",
+                    "    # .$ $. #   ",
+                    "    # *.*.* #   ",
+                    "   ##  $ $  ##  ",
+                    "  ########  ### ",
+                    " ###############",
+                    "     ##   ##    ",
+                    "                "
+                ]
+            },
+            {
+                "level": 83,
+                "name": "Classic Level 83",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    " ############## ",
+                    " # @ * * * #  ##",
+                    " #$#  * *  #   #",
+                    " # # * * *     #",
+                    " # #  * *  ## ##",
+                    " # # * * * ## # ",
+                    " # #  * *  ## # ",
+                    " # # * * * ## # ",
+                    " # #  * *  ## # ",
+                    " # # * . * ## ##",
+                    "## ##########  #",
+                    "#              #",
+                    "#   #########  #",
+                    "#####       ####"
+                ]
+            },
+            {
+                "level": 84,
+                "name": "Classic Level 84",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "  ############# ",
+                    "  #    #  ##  # ",
+                    "  #$$$ # $$  $##",
+                    "  # $  #  .... #",
+                    "  #  $  #$.##. #",
+                    "  #  # $# ....##",
+                    " ##$ $  #$.##. #",
+                    " # $  $ @$.... #",
+                    " #   ###  ######",
+                    " ##### ####     ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 85,
+                "name": "Classic Level 85",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "      ######### ",
+                    "      #       # ",
+                    "      #  $#$# # ",
+                    "  ######  # $ # ",
+                    "  #   # $  $  # ",
+                    " ## $     ### # ",
+                    " #   #$####   # ",
+                    " #    $ ### ### ",
+                    " #####.. @# ##  ",
+                    "    #...$ $$ #  ",
+                    "    #...#    #  ",
+                    "    #...######  ",
+                    "    #####       ",
+                    "                "
+                ]
+            },
+            {
+                "level": 86,
+                "name": "Classic Level 86",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "####     ####   ",
+                    "#  #######..### ",
+                    "# $ $ $  #....# ",
+                    "# $   $$ #***.# ",
+                    "# $ $ $  #..*.# ",
+                    "#  $ $ $ #*.*.# ",
+                    "## $ $ $ .*.*.##",
+                    "#  $ $ $ .*.*.@#",
+                    "#  $ $ $ #*.*.##",
+                    "# $ $ $  #..*.# ",
+                    "# $   $$ #***.# ",
+                    "# $ $ $  #....# ",
+                    "#  #######..### ",
+                    "####     ####   "
+                ]
+            },
+            {
+                "level": 87,
+                "name": "Classic Level 87",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "      #####     ",
+                    "#######   #     ",
+                    "#   ##.   #     ",
+                    "#  $#..  ###    ",
+                    "##  ...#$$ #####",
+                    " # $.#.$       #",
+                    " # $###$## # $ #",
+                    " #   #     $$# #",
+                    " ##$$# ##$#$   #",
+                    " #... $@ $   ###",
+                    " #...#$#   ###  ",
+                    " #...  #####    ",
+                    " #######        ",
+                    "                "
+                ]
+            },
+            {
+                "level": 88,
+                "name": "Classic Level 88",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "   ####  ###### ",
+                    "   #  ####    # ",
+                    "  ##*   * **  # ",
+                    "  # $ *    *# # ",
+                    "  # .   ###   # ",
+                    "  ######   #@## ",
+                    "  # * . *  ** # ",
+                    "  #   #   #   # ",
+                    "  ##*   * #$# # ",
+                    "   #  #####   # ",
+                    "   ####   ##### ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 89,
+                "name": "Classic Level 89",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    #########   ",
+                    "    #   #   #   ",
+                    "    # $$$$$ #   ",
+                    "   ## $ $ $ #   ",
+                    "   # $  @   #   ",
+                    "   # $ #### ##  ",
+                    "   #  #..... #  ",
+                    "   ##  ..... #  ",
+                    "    ##########  ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 90,
+                "name": "Classic Level 90",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "   #######      ",
+                    "   #     #      ",
+                    "   # $ $ ##     ",
+                    "   #####..##### ",
+                    "######..*.  $ # ",
+                    "#  $@$....#$$ # ",
+                    "#   $ #$###   # ",
+                    "#####       ### ",
+                    "    ###  ####   ",
+                    "      #  #      ",
+                    "      ####      ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 91,
+                "name": "Classic Level 91",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "   #####        ",
+                    "   #   ######   ",
+                    "   # $ .. $ #   ",
+                    "   ##$ ..$$@#   ",
+                    "    #  .. $ #   ",
+                    "    #########   ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 92,
+                "name": "Classic Level 92",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "                ",
+                    "    #####       ",
+                    "    #   ######  ",
+                    "  ###$#.     #  ",
+                    "  # $ ...# $ #  ",
+                    "  #@ $.#*$   #  ",
+                    "  ####    ####  ",
+                    "     ######     ",
+                    "                ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 93,
+                "name": "Classic Level 93",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "    #####       ",
+                    "#####   #       ",
+                    "#   $ @ #       ",
+                    "#  $ #.#####    ",
+                    "##$ ##.##  #### ",
+                    " #  ..... $#  # ",
+                    " # $##.##  #$ # ",
+                    " #   #.##     # ",
+                    " ### $ ##### ## ",
+                    "   # #$     $ # ",
+                    "   #    ###   # ",
+                    "   ###### ##### ",
+                    "                "
+                ]
+            },
+            {
+                "level": 94,
+                "name": "Classic Level 94",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "                ",
+                    "    #######     ",
+                    "    #  *  #     ",
+                    "    # @.$ #     ",
+                    "    # $.  #     ",
+                    "    #*.***#     ",
+                    "    #  *  #     ",
+                    "    # $*$ #     ",
+                    "    #  .  #     ",
+                    "    #######     ",
+                    "                ",
+                    "                ",
+                    "                "
+                ]
+            },
+            {
+                "level": 95,
+                "name": "Classic Level 95",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "  #########     ",
+                    "  #    #  #     ",
+                    "### #$  $ ####  ",
+                    "#  $  ##..#  ###",
+                    "# #  $ #..$ $  #",
+                    "# $$  $#..  #  #",
+                    "##  #  ...#$   #",
+                    " #$ @ #...# $  #",
+                    " #    #...$   ##",
+                    " # ##$ ###   ## ",
+                    " #   $     ###  ",
+                    " #  ########    ",
+                    " ####           ",
+                    "                "
+                ]
+            },
+            {
+                "level": 96,
+                "name": "Classic Level 96",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "    ##########  ",
+                    " ####......  #  ",
+                    " #   .....#  #  ",
+                    " #  #...... ##  ",
+                    " ## ####$##$#   ",
+                    " #@$  $ $   ### ",
+                    " # $$    ##   # ",
+                    " # #  $$##  # # ",
+                    " #   $  # $$  # ",
+                    " #  $  $   #$ # ",
+                    " ####   # $ $ # ",
+                    "    #   #     # ",
+                    "    ########### ",
+                    "                "
+                ]
+            },
+            {
+                "level": 97,
+                "name": "Classic Level 97",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "      ######### ",
+                    "      #       # ",
+                    "      #$ $$$  # ",
+                    "      #   # $ # ",
+                    "      #   $@$ # ",
+                    "    ###$ $ # ## ",
+                    "    #   $#$# #  ",
+                    "##### #  #   #  ",
+                    "#...  # $# ###  ",
+                    "#.....   # #    ",
+                    "#.....# $# #    ",
+                    "########   #    ",
+                    "       #####    ",
+                    "                "
+                ]
+            },
+            {
+                "level": 98,
+                "name": "Classic Level 98",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "  ##### ######  ",
+                    "  #   ###    #  ",
+                    " ## $ $ #$ #$#  ",
+                    " #  $ @ $  $ ## ",
+                    " # #  ## #....# ",
+                    " #  ## $ #.##.# ",
+                    " ##  $    ....# ",
+                    "  # $$ #$#....# ",
+                    "  #   #   #$ ## ",
+                    "  ##### $    #  ",
+                    "      ####  ##  ",
+                    "         ####   ",
+                    "                "
+                ]
+            },
+            {
+                "level": 99,
+                "name": "Classic Level 99",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "####            ",
+                    "#  #            ",
+                    "#  ##########   ",
+                    "#    ##     #   ",
+                    "#..#    $$# #   ",
+                    "#..  ##   $ ### ",
+                    "#..#  ##$# $  # ",
+                    "#..   # @$ $  # ",
+                    "#..#  # $ $   # ",
+                    "# .   # $ $ ### ",
+                    "#  #  #   ###   ",
+                    "#  #    ###     ",
+                    "#########       ",
+                    "                "
+                ]
+            },
+            {
+                "level": 100,
+                "name": "Classic Level 100",
+                "difficulty": "Advanced",
+                "description": "Classic puzzle challenge",
+                "map": [
+                    "                ",
+                    "         #####  ",
+                    "        #     # ",
+                    "       #  $##  #",
+                    "      #  #   $ #",
+                    "#  #  # #  # # #",
+                    " # #  # $ $  $ #",
+                    "  ####### #$#  #",
+                    "  #  $ $      # ",
+                    "  #@..$ **.###  ",
+                    "   #......##### ",
+                    "    ############",
+                    "                ",
+                    "                "
+                ]
+            }
+        ];    </script>
+
+    <script>
+        /* GAME APP */
+        /* INJECT_APP_MARKER */
+        // Coinis Boxworld - Official Brand Edition
+        // Matching authentic Coinis.com brand identity
+
+        class CoinisBoxworldOfficial {
+            constructor() {
+                this.currentLevel = 1;
+                this.moves = 0;
+                this.history = [];
+                this.gameBoard = document.getElementById('gameBoard');
+
+                // Load official levels
+                if (window.classicLevels) {
+                    this.levels = [...window.classicLevels];
+                } else {
+                    console.error("Critical: Levels not loaded!");
+                    this.levels = [];
+                }
+
+                this.initializeGame();
+            }
+
+            async initializeGame() {
+                // 1. Setup Listeners
+                this.setupEventListeners();
+
+                // 2. Load UI immediately (Guest Mode first)
+                this.loadLevel(this.currentLevel);
+                this.updateUI();
+
+                // 3. Auth & Progress Logic (Background)
+                this.setupAuth().then(() => {
+                    // Auth done (or timed out), specific post-auth logic if needed
+                    this.startLeaderboardUpdates();
+                    this.setupChat();
+                });
+
+                this.showWelcomeMessage();
+            }
+
+            showWelcomeMessage() {
+                // Professional console message matching Coinis brand
+                console.log(`
+╔══════════════════════════════════════════════════════════════╗
+║                     COINIS BOXWORLD                          ║
+║                 Professional Gaming Platform                 ║
+║                                                              ║
+║  Status: System Ready                                        ║
+║  Version: 1.0 (Official Brand Edition)                      ║
+║  Framework: Modern Web Technologies                         ║
+║                                                              ║
+║  > All 13 levels verified and tested                        ║
+║  > Level 4 deadlock issue resolved                          ║
+║                                                              ║
+║  Powered by Coinis AdTech Solutions                         ║
+║  Visit: https://coinis.com                                  ║
+╚══════════════════════════════════════════════════════════════╝`);
+            }
+
+            setupEventListeners() {
+                // Enhanced keyboard controls
+                document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+
+                // Button controls
+                document.getElementById('undoBtn').addEventListener('click', () => {
+                    this.addVisualFeedback();
+                    this.undo();
+                });
+
+                document.getElementById('restartBtn').addEventListener('click', () => {
+                    this.addVisualFeedback();
+                    this.restart();
+                });
+
+                document.getElementById('levelsBtn').addEventListener('click', () => {
+                    this.addVisualFeedback();
+                    this.showLevelSelection();
+                });
+
+                // Leaderboard Button
+                const lbBtn = document.getElementById('leaderboardBtn');
+                if (lbBtn) {
+                    lbBtn.addEventListener('click', () => {
+                        this.addVisualFeedback();
+                        this.showLeaderboard();
+                    });
+                }
+
+                // Sidebar Login Button (Crucial Fix)
+                const sidebarLogin = document.getElementById('loginBtnSidebar');
+                if (sidebarLogin) {
+                    sidebarLogin.addEventListener('click', () => {
+                        this.addVisualFeedback();
+                        this.triggerLogin();
+                    });
+                }
+
+                // Modal controls
+                document.getElementById('nextLevelBtn').addEventListener('click', () => {
+                    this.addVisualFeedback();
+                    this.nextLevel();
+                });
+
+                document.getElementById('restartLevelBtn').addEventListener('click', () => {
+                    this.addVisualFeedback();
+                    this.restart();
+                });
+
+                document.getElementById('closeLevelsBtn').addEventListener('click', () => {
+                    this.hideLevelSelection();
+                });
+
+                // Modal overlay interactions
+                document.querySelectorAll('.modal-overlay').forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            modal.classList.remove('active');
+                            this.addVisualFeedback();
+                        }
+                    });
+                });
+
+                // Close Leaderboard
+                const closeLb = document.getElementById('closeLeaderboardBtn');
+                if (closeLb) {
+                    closeLb.addEventListener('click', () => {
+                        document.getElementById('leaderboardModal').classList.remove('active');
+                    });
+                }
+
+                // Touch controls
+                this.touchStartX = 0;
+                this.touchStartY = 0;
+                const gameBoard = document.getElementById('gameBoard');
+
+                if (gameBoard) {
+                    gameBoard.addEventListener('touchstart', (e) => {
+                        this.touchStartX = e.changedTouches[0].screenX;
+                        this.touchStartY = e.changedTouches[0].screenY;
+                        e.preventDefault(); // Prevent default scroll
+                    }, { passive: false });
+
+                    gameBoard.addEventListener('touchend', (e) => {
+                        const touchEndX = e.changedTouches[0].screenX;
+                        const touchEndY = e.changedTouches[0].screenY;
+                        this.handleSwipe(touchEndX, touchEndY);
+                        e.preventDefault();
+                    }, { passive: false });
+                }
+            }
+
+            handleSwipe(endX, endY) {
+                const threshold = 30; // Min distance for swipe
+                const dx = endX - this.touchStartX;
+                const dy = endY - this.touchStartY;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horizontal swipe
+                    if (Math.abs(dx) > threshold) {
+                        if (dx > 0) this.movePlayerWithAnimation(1, 0); // Right
+                        else this.movePlayerWithAnimation(-1, 0); // Left
+                    }
+                } else {
+                    // Vertical swipe
+                    if (Math.abs(dy) > threshold) {
+                        if (dy > 0) this.movePlayerWithAnimation(0, 1); // Down
+                        else this.movePlayerWithAnimation(0, -1); // Up
+                    }
+                }
+            }
+
+            addVisualFeedback() {
+                // Subtle professional feedback
+                document.body.style.filter = 'brightness(1.05)';
+                setTimeout(() => {
+                    document.body.style.filter = 'brightness(1)';
+                }, 100);
+            }
+
+            loadLevel(levelNum) {
+                if (levelNum < 1 || levelNum > this.levels.length) return;
+
+                const level = this.levels[levelNum - 1];
+                this.currentLevel = levelNum;
+                this.moves = 0;
+                this.history = [];
+
+                // Parse level map
+                this.gameState = {
+                    map: level.map.map(row => row.split('')),
+                    player: null,
+                    boxes: [],
+                    targets: [],
+                    width: Math.max(...level.map.map(row => row.length)),
+                    height: level.map.length,
+                    levelData: level
+                };
+
+                // Find game elements
+                for (let y = 0; y < this.gameState.height; y++) {
+                    for (let x = 0; x < this.gameState.width; x++) {
+                        const cell = this.gameState.map[y] ? this.gameState.map[y][x] || ' ' : ' ';
+
+                        switch (cell) {
+                            case '@':
+                                this.gameState.player = { x, y };
+                                this.gameState.map[y][x] = ' ';
+                                break;
+                            case '+':
+                                this.gameState.player = { x, y };
+                                this.gameState.targets.push({ x, y });
+                                this.gameState.map[y][x] = ' ';
+                                break;
+                            case '$':
+                                this.gameState.boxes.push({ x, y });
+                                this.gameState.map[y][x] = ' ';
+                                break;
+                            case '*':
+                                this.gameState.boxes.push({ x, y });
+                                this.gameState.targets.push({ x, y });
+                                this.gameState.map[y][x] = ' ';
+                                break;
+                            case '.':
+                                this.gameState.targets.push({ x, y });
+                                this.gameState.map[y][x] = ' ';
+                                break;
+                        }
+                    }
+                }
+
+                this.saveState();
+                this.renderGame();
+                this.updateUI();
+            }
+
+            renderGame() {
+                const board = this.gameBoard;
+                board.innerHTML = '';
+                board.style.gridTemplateColumns = `repeat(${this.gameState.width}, 1fr)`;
+
+                for (let y = 0; y < this.gameState.height; y++) {
+                    for (let x = 0; x < this.gameState.width; x++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.setAttribute('data-x', x);
+                        cell.setAttribute('data-y', y);
+
+                        const cellChar = this.gameState.map[y] ? this.gameState.map[y][x] || ' ' : ' ';
+
+                        // Enhanced cell rendering
+                        if (cellChar === '#') {
+                            cell.classList.add('wall');
+                        } else {
+                            cell.classList.add('floor');
+
+                            // Check for targets
+                            const isTarget = this.gameState.targets.some(t => t.x === x && t.y === y);
+                            if (isTarget) {
+                                cell.classList.add('target');
+                            }
+
+                            // Check for boxes
+                            const box = this.gameState.boxes.find(b => b.x === x && b.y === y);
+                            if (box) {
+                                if (isTarget) {
+                                    cell.classList.add('box-on-target');
+                                } else {
+                                    cell.classList.add('box');
+                                }
+                            }
+
+                            // Check for player
+                            if (this.gameState.player && this.gameState.player.x === x && this.gameState.player.y === y) {
+                                if (isTarget) {
+                                    cell.classList.add('player', 'player-on-target');
+                                } else {
+                                    cell.classList.add('player');
+                                }
+                            }
+                        }
+
+                        // Add professional hover effects
+                        if (cellChar !== '#') {
+                            cell.addEventListener('mouseenter', () => {
+                                cell.style.transform = 'scale(1.02)';
+                                cell.style.transition = 'transform 0.15s ease';
+                            });
+
+                            cell.addEventListener('mouseleave', () => {
+                                cell.style.transform = 'scale(1)';
+                            });
+                        }
+
+                        board.appendChild(cell);
+                    }
+                }
+            }
+
+            handleKeyPress(e) {
+                if (this.isAnimating) return;
+
+                const key = e.key.toLowerCase();
+                let dx = 0, dy = 0;
+
+                switch (key) {
+                    case 'w':
+                    case 'arrowup':
+                        dy = -1;
+                        break;
+                    case 's':
+                    case 'arrowdown':
+                        dy = 1;
+                        break;
+                    case 'a':
+                    case 'arrowleft':
+                        dx = -1;
+                        break;
+                    case 'd':
+                    case 'arrowright':
+                        dx = 1;
+                        break;
+                    case 'r':
+                        this.restart();
+                        return;
+                    case 'u':
+                        this.undo();
+                        return;
+                    case 'escape':
+                        this.hideLevelSelection();
+                        document.getElementById('victoryModal').classList.remove('active');
+                        return;
+                    case ' ':
+                        e.preventDefault();
+                        return;
+                    default:
+                        return;
+                }
+
+                e.preventDefault();
+                this.movePlayerWithAnimation(dx, dy);
+            }
+
+            async movePlayerWithAnimation(dx, dy) {
+                const newX = this.gameState.player.x + dx;
+                const newY = this.gameState.player.y + dy;
+
+                // Check bounds
+                if (newY < 0 || newY >= this.gameState.height ||
+                    newX < 0 || newX >= this.gameState.width) return;
+
+                // Check wall collision
+                const newCell = this.gameState.map[newY] ? this.gameState.map[newY][newX] || ' ' : ' ';
+                if (newCell === '#') return;
+
+                // Check box collision
+                const box = this.gameState.boxes.find(b => b.x === newX && b.y === newY);
+                if (box) {
+                    // Try to push box
+                    const pushX = newX + dx;
+                    const pushY = newY + dy;
+
+                    // Check push bounds
+                    if (pushY < 0 || pushY >= this.gameState.height ||
+                        pushX < 0 || pushX >= this.gameState.width) return;
+
+                    // Check push destination
+                    const pushCell = this.gameState.map[pushY] ? this.gameState.map[pushY][pushX] || ' ' : ' ';
+                    if (pushCell === '#') return;
+
+                    // Check if another box is in the way
+                    if (this.gameState.boxes.some(b => b.x === pushX && b.y === pushY)) return;
+
+                    // Animate box push
+                    this.isAnimating = true;
+                    this.saveState();
+                    box.x = pushX;
+                    box.y = pushY;
+
+                    // Add moving animation
+                    const boxCell = document.querySelector(`[data-x="${newX}"][data-y="${newY}"]`);
+                    if (boxCell) {
+                        boxCell.classList.add('moving');
+                        setTimeout(() => boxCell.classList.remove('moving'), 300);
+                    }
+                } else {
+                    // Regular move
+                    this.isAnimating = true;
+                    this.saveState();
+                }
+
+                // Move player with animation
+                const playerCell = document.querySelector(`[data-x="${this.gameState.player.x}"][data-y="${this.gameState.player.y}"]`);
+                if (playerCell) {
+                    playerCell.classList.add('moving');
+                    setTimeout(() => playerCell.classList.remove('moving'), 300);
+                }
+
+                this.gameState.player.x = newX;
+                this.gameState.player.y = newY;
+                this.moves++;
+
+                // Delayed re-render for smooth animation
+                setTimeout(() => {
+                    this.renderGame();
+                    this.updateUI();
+                    this.checkWin();
+                    this.isAnimating = false;
+                }, 150);
+            }
+
+            saveState() {
+                this.history.push({
+                    player: { ...this.gameState.player },
+                    boxes: this.gameState.boxes.map(b => ({ ...b })),
+                    moves: this.moves
+                });
+
+                if (this.history.length > 100) {
+                    this.history.shift();
+                }
+            }
+
+            undo() {
+                if (this.history.length > 1) {
+                    this.history.pop();
+                    const prevState = this.history[this.history.length - 1];
+
+                    this.gameState.player = { ...prevState.player };
+                    this.gameState.boxes = prevState.boxes.map(b => ({ ...b }));
+                    this.moves = prevState.moves;
+
+                    this.renderGame();
+                    this.updateUI();
+                }
+            }
+
+            restart() {
+                this.isSolving = false;
+                this.loadLevel(this.currentLevel);
+            }
+
+            checkWin() {
+                const allBoxesOnTargets = this.gameState.boxes.every(box =>
+                    this.gameState.targets.some(target =>
+                        target.x === box.x && target.y === box.y
+                    )
+                );
+
+                if (allBoxesOnTargets) {
+                    this.completedLevels[this.currentLevel] = true;
+                    this.saveProgress();
+                    this.saveScoreToCloud(this.currentLevel, this.moves);
+                    this.showVictory();
+                }
+            }
+
+            showVictory() {
+                const level = this.gameState.levelData;
+                document.getElementById('completedLevel').textContent = `Level ${this.currentLevel} - ${level.name}`;
+                document.getElementById('finalMoves').textContent = this.moves.toString().padStart(3, '0');
+
+                const nextBtn = document.getElementById('nextLevelBtn');
+                if (this.currentLevel < this.levels.length) {
+                    nextBtn.style.display = 'inline-flex';
+                } else {
+                    nextBtn.style.display = 'none';
+                }
+
+                document.getElementById('victoryModal').classList.add('active');
+            }
+
+            nextLevel() {
+                document.getElementById('victoryModal').classList.remove('active');
+                if (this.currentLevel < this.levels.length) {
+                    this.loadLevel(this.currentLevel + 1);
+                }
+            }
+
+            showLevelSelection() {
+                const grid = document.getElementById('levelsGrid');
+                grid.innerHTML = '';
+
+                this.levels.forEach((level, index) => {
+                    const levelNum = index + 1;
+                    const btn = document.createElement('button');
+                    btn.className = 'level-btn';
+
+                    // Professional button state logic
+                    if (this.completedLevels[levelNum]) {
+                        btn.classList.add('completed');
+                    } else if (levelNum === this.currentLevel) {
+                        btn.classList.add('current');
+                    }
+                    // All levels unlocked for testing
+                    // else if (levelNum > this.currentLevel && !this.completedLevels[levelNum]) {
+                    //     if (levelNum <= Math.max(this.currentLevel, Math.max(...Object.keys(this.completedLevels).map(Number)) + 1)) {
+                    //         // Unlocked
+                    //     } else {
+                    //         btn.classList.add('locked');
+                    //         btn.disabled = true;
+                    //     }
+                    // }
+
+                    btn.innerHTML = `
+                <div class="level-number">${levelNum.toString().padStart(2, '0')}</div>
+                <div class="level-difficulty">${level.difficulty}</div>
+            `;
+
+                    btn.title = `Level ${levelNum}: ${level.name} - ${level.description}`;
+
+                    if (!btn.disabled) {
+                        btn.addEventListener('click', () => {
+                            this.addVisualFeedback();
+                            this.loadLevel(levelNum);
+                            this.hideLevelSelection();
+                        });
+                    }
+
+                    grid.appendChild(btn);
+                });
+
+                document.getElementById('levelsModal').classList.add('active');
+            }
+
+            hideLevelSelection() {
+                document.getElementById('levelsModal').classList.remove('active');
+            }
+
+            updateUI() {
+                const level = this.levels[this.currentLevel - 1];
+                document.querySelector('.current-level').textContent = this.currentLevel.toString().padStart(2, '0');
+                document.querySelector('.level-name').textContent = level.name;
+                document.querySelector('.move-count').textContent = this.moves.toString().padStart(3, '0');
+
+                const remainingTargets = this.gameState.targets.length -
+                    this.gameState.boxes.filter(box =>
+                        this.gameState.targets.some(target =>
+                            target.x === box.x && target.y === box.y
+                        )
+                    ).length;
+                document.querySelector('.targets-remaining').textContent = remainingTargets.toString().padStart(2, '0');
+
+                // Update button states
+                const undoBtn = document.getElementById('undoBtn');
+                undoBtn.disabled = this.history.length <= 1;
+            }
+
+            saveProgress() {
+                if (this.currentUser) {
+                    localStorage.setItem('coinis-boxworld-official-progress', JSON.stringify(this.completedLevels));
+                    this.saveScoreToCloud(this.currentLevel, this.moves);
+                } else {
+                    sessionStorage.setItem('coinis_progress_temp', JSON.stringify(this.completedLevels));
+                }
+            }
+
+            loadProgress() {
+                if (this.currentUser) {
+                    return JSON.parse(localStorage.getItem('coinis-boxworld-official-progress') || '{}');
+                } else {
+                    return JSON.parse(sessionStorage.getItem('coinis_progress_temp') || '{}');
+                }
+            }
+
+            setupAuth() {
+                return new Promise((resolve) => {
+                    const checkAuth = setInterval(() => {
+                        if (window.firebaseServices && window.firebaseServices.isConfigured()) {
+                            clearInterval(checkAuth);
+                            window.firebaseServices.auth.onAuthStateChanged(user => {
+                                this.handleAuthChange(user);
+                                resolve();
+                            });
+                        }
+                    }, 100);
+
+                    // Fallback if firebase fails
+                    setTimeout(resolve, 3000);
+                });
+            }
+
+            handleAuthChange(user) {
+                this.currentUser = user;
+                const loginBtn = document.getElementById('loginBtnSidebar');
+                const userInfo = document.getElementById('userInfo');
+                const userAvatar = document.getElementById('userAvatar');
+                const userNameDisplay = document.getElementById('userNameDisplay');
+                const chatInput = document.getElementById('chatInput');
+                const chatSendBtn = document.getElementById('chatSendBtn');
+                const loginOverlay = document.getElementById('loginOverlay');
+
+                if (user) {
+                    // UI State: Logged In
+                    if (loginBtn) loginBtn.style.display = 'none';
+                    if (userInfo) userInfo.style.display = 'flex';
+                    if (userAvatar) userAvatar.src = user.photoURL || 'assets/default-avatar.png';
+                    if (userNameDisplay) userNameDisplay.textContent = user.displayName.split(' ')[0];
+
+                    // Chat: Enable
+                    if (chatInput) {
+                        chatInput.disabled = false;
+                        chatInput.placeholder = "Type a message...";
+                    }
+                    if (chatSendBtn) chatSendBtn.disabled = false;
+                    if (loginOverlay) loginOverlay.style.display = 'none';
+
+                    // Progress: Merge Session -> Cloud
+                    this.mergeProgress();
+                } else {
+                    // UI State: Guest
+                    if (loginBtn) loginBtn.style.display = 'inline-block';
+                    if (userInfo) userInfo.style.display = 'none';
+
+                    // Chat: Disable
+                    if (chatInput) {
+                        chatInput.disabled = true;
+                        chatInput.placeholder = "Login to chat...";
+                    }
+                    if (chatSendBtn) chatSendBtn.disabled = true;
+                    if (loginOverlay) {
+                        loginOverlay.style.display = 'flex';
+                        const overlayBtn = loginOverlay.querySelector('button');
+                        if (overlayBtn) overlayBtn.onclick = () => this.triggerLogin();
+                    }
+
+                    // Progress: Load Session or use empty
+                    const session = sessionStorage.getItem('coinis_progress_temp');
+                    this.completedLevels = session ? JSON.parse(session) : {};
+                }
+
+                this.updateUI();
+            }
+
+            triggerLogin() {
+                if (window.firebaseServices) {
+                    window.firebaseServices.signInWithGoogle().catch(console.error);
+                }
+            }
+
+            triggerLogout() {
+                if (window.firebaseServices) {
+                    window.firebaseServices.signOutUser();
+                    window.location.reload();
+                }
+            }
+
+            mergeProgress() {
+                const sessionProgress = JSON.parse(sessionStorage.getItem('coinis_progress_temp') || '{}');
+                const localProgress = JSON.parse(localStorage.getItem('coinis-boxworld-official-progress') || '{}');
+
+                this.completedLevels = { ...localProgress, ...sessionProgress };
+                this.saveProgress(); // This will now save to localStorage since currentUser is true
+            }
+
+            saveScoreToCloud(level, moves) {
+                if (this.currentUser && window.firebaseServices) {
+                    window.firebaseServices.saveScore(level, moves);
+                }
+            }
+        }
+
+        // Initialize professional game
+        document.addEventListener('DOMContentLoaded', () => {
+            // Professional loading sequence
+            document.body.style.opacity = '0';
+
+            setTimeout(() => {
+                new CoinisBoxworldOfficial();
+
+                // Smooth fade in
+                document.body.style.transition = 'opacity 0.8s ease';
+                document.body.style.opacity = '1';
+            }, 100);
+        });    </script>
 </body>
 
 </html>

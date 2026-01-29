@@ -1,7 +1,4 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, query, orderBy, limit, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// Firebase Compat Configuration for local file:// execution
 
 // Firebase configuration provided by user
 const firebaseConfig = {
@@ -14,29 +11,33 @@ const firebaseConfig = {
     measurementId: "G-VBMFDNBXEP"
 };
 
-// Initialize Firebase
+// Initialize Firebase (Compat)
 let app, auth, db;
 let isInitialized = false;
 
 try {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    isInitialized = true;
-    console.log("Firebase Initialized Successfully");
+    if (typeof firebase !== 'undefined') {
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        isInitialized = true;
+        console.log("Firebase Initialized Successfully (Compat Mode)");
+    } else {
+        console.error("Firebase SDK not loaded");
+    }
 } catch (e) {
     console.error("Firebase Initialization Error:", e);
 }
 
-// Export services to window for use in app.js
+// Export services to window using Compat APIs
 window.firebaseServices = {
     auth,
     db,
     signInWithGoogle: async () => {
         if (!isInitialized) { alert("Leaderboard not configured."); return; }
-        const provider = new GoogleAuthProvider();
+        const provider = new firebase.auth.GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
+            const result = await auth.signInWithPopup(provider);
             return result.user;
         } catch (error) {
             console.error(error);
@@ -45,28 +46,25 @@ window.firebaseServices = {
     },
     signOutUser: async () => {
         if (!isInitialized) return;
-        return signOut(auth);
+        return auth.signOut();
     },
     saveScore: async (level, moves) => {
         if (!isInitialized || !auth.currentUser) return;
         const user = auth.currentUser;
 
-        // Save to global high scores for this level
-        // Collection: leaderboard_level_X
-        // Doc: userID (enforces one score per user)
         try {
-            const scoreRef = doc(db, `leaderboard_level_${level}`, user.uid);
-            const currentDoc = await getDoc(scoreRef);
+            // Compat: db.collection().doc()
+            const scoreRef = db.collection(`leaderboard_level_${level}`).doc(user.uid);
+            const currentDoc = await scoreRef.get();
 
-            if (currentDoc.exists()) {
+            if (currentDoc.exists) {
                 const data = currentDoc.data();
                 if (data.moves <= moves) {
-                    console.log("Existing score is better or equal. not updating.");
-                    return; // Don't overwrite with worse score
+                    return;
                 }
             }
 
-            await setDoc(scoreRef, {
+            await scoreRef.set({
                 uid: user.uid,
                 displayName: user.displayName,
                 photoURL: user.photoURL,
@@ -81,15 +79,12 @@ window.firebaseServices = {
     getLeaderboard: async (level) => {
         if (!isInitialized) return [];
         try {
-            const q = query(
-                collection(db, `leaderboard_level_${level}`),
-                orderBy("moves", "asc"),
-                limit(20)
-            );
+            const q = db.collection(`leaderboard_level_${level}`)
+                .orderBy("moves", "asc")
+                .limit(20);
 
             return new Promise((resolve, reject) => {
-                // Use onSnapshot for a single fetch (simpler than getDocs with modules here)
-                const unsubscribe = onSnapshot(q, (snapshot) => {
+                const unsubscribe = q.onSnapshot((snapshot) => {
                     const scores = [];
                     snapshot.forEach((doc) => {
                         scores.push(doc.data());
@@ -107,23 +102,19 @@ window.firebaseServices = {
     },
     isConfigured: () => isInitialized,
 
-    // --- Chat API ---
+    // --- Chat API (Compat) ---
     subscribeToChat: (callback) => {
         if (!isInitialized) return () => { };
 
-        // Query last 50 messages ordered by timestamp
-        const q = query(
-            collection(db, "chat_messages"),
-            orderBy("timestamp", "desc"),
-            limit(50)
-        );
+        const q = db.collection("chat_messages")
+            .orderBy("timestamp", "desc")
+            .limit(50);
 
-        return onSnapshot(q, (snapshot) => {
+        return q.onSnapshot((snapshot) => {
             const messages = [];
             snapshot.forEach((doc) => {
                 messages.push({ id: doc.id, ...doc.data() });
             });
-            // Reverse so newest is at bottom in UI array, but we fetched desc for limit
             callback(messages.reverse());
         });
     },
@@ -132,15 +123,14 @@ window.firebaseServices = {
         if (!isInitialized || !auth.currentUser) return;
         const user = auth.currentUser;
 
-        // Basic validation
         if (text.length > 100) throw new Error("Message too long");
 
-        await addDoc(collection(db, "chat_messages"), {
+        await db.collection("chat_messages").add({
             text: text,
             uid: user.uid,
             displayName: user.displayName,
             photoURL: user.photoURL,
-            timestamp: new Date().toISOString() // serverTimestamp() is better but this works for now
+            timestamp: new Date().toISOString()
         });
     }
 };

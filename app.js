@@ -32,7 +32,27 @@ class CoinisBoxworldOfficial {
             this.levels = [];
         }
 
+        this.injectCustomStyles(); // Inject CSS for Logout button
         this.initializeGame();
+    }
+
+    injectCustomStyles() {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .btn-custom-logout {
+                background: transparent !important;
+                color: #111 !important;
+                border: 1px solid #111 !important;
+            }
+            .btn-custom-logout:hover {
+                background: #f5f5f5 !important;
+            }
+            /* Ensure player is visible on top of target */
+            .cell.player.target::after {
+                /* This might be handled by existing CSS, but let's ensure player class is robust */
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     initializeGame() {
@@ -47,7 +67,7 @@ class CoinisBoxworldOfficial {
     }
 
     showWelcomeMessage() {
-        console.log("Coinis Boxworld: System Ready (v1.2 Fixed)");
+        console.log("Coinis Boxworld: System Ready (v1.3 Fix)");
     }
 
     setupEventListeners() {
@@ -171,7 +191,10 @@ class CoinisBoxworldOfficial {
                         // Update UI
                         if (loginBtn) {
                             loginBtn.textContent = 'Logout';
-                            loginBtn.style.background = '#444';
+                            // Use injected class for neutral style
+                            loginBtn.classList.add('btn-custom-logout');
+                            // Remove any inline style that might conflict (though !important handles it)
+                            loginBtn.style.background = '';
                         }
                         if (userDisplay) {
                             userDisplay.style.display = 'inline-block';
@@ -187,7 +210,8 @@ class CoinisBoxworldOfficial {
                         // Reset UI
                         if (loginBtn) {
                             loginBtn.textContent = 'Login';
-                            loginBtn.style.background = ''; // reset
+                            loginBtn.classList.remove('btn-custom-logout');
+                            loginBtn.style.background = ''; // reset to default CSS
                             loginBtn.style.display = 'inline-block';
                         }
                         if (userDisplay) userDisplay.style.display = 'none';
@@ -371,7 +395,9 @@ class CoinisBoxworldOfficial {
                     if (box) cell.classList.add(isTarget ? 'box-on-target' : 'box');
 
                     if (this.gameState.player.x === x && this.gameState.player.y === y) {
-                        cell.classList.add(isTarget ? 'player-on-target' : 'player');
+                        // FIXED: Always use 'player' class. Do not rely on 'player-on-target'.
+                        // Overlap is handled by CSS (player should be on top).
+                        cell.classList.add('player');
                     }
                 }
 
@@ -401,7 +427,8 @@ class CoinisBoxworldOfficial {
         if (box) cell.classList.add(isTarget ? 'box-on-target' : 'box');
 
         if (this.gameState.player.x === x && this.gameState.player.y === y) {
-            cell.classList.add(isTarget ? 'player-on-target' : 'player');
+            // FIXED: As above, always use 'player'
+            cell.classList.add('player');
         }
 
         cell.onmouseenter = () => { cell.style.transform = 'scale(1.02)'; cell.style.transition = 'transform 0.15s'; };

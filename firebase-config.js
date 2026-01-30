@@ -2,7 +2,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, query, orderBy, limit, collection } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+    getFirestore, doc, setDoc, getDoc, updateDoc, addDoc,
+    arrayUnion, onSnapshot, query, orderBy, limit, collection,
+    serverTimestamp, where, runTransaction, Timestamp, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -30,10 +34,38 @@ try {
     console.error("Firebase Initialization Error:", e);
 }
 
+// Helper for Guest ID
+function ensureGuestId() {
+    let guestId = sessionStorage.getItem('coinis_guest_id');
+    if (!guestId) {
+        guestId = 'guest_' + Math.random().toString(36).substr(2, 9);
+        sessionStorage.setItem('coinis_guest_id', guestId);
+    }
+    return guestId;
+}
+
 // Export services to window for use in app.js
 window.firebaseServices = {
     auth,
     db,
+    // Export Firestore functions needed by app.js
+    addDoc,
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    updateDoc,
+    query,
+    orderBy,
+    limit,
+    where,
+    serverTimestamp,
+    Timestamp,
+    getDocs,
+    onSnapshot,
+
+    ensureGuestId,
+
     signInWithGoogle: async () => {
         if (!isInitialized) { alert("Firebase not initialized."); return; }
         const provider = new GoogleAuthProvider();
@@ -50,23 +82,7 @@ window.firebaseServices = {
         return signOut(auth);
     },
     saveScore: async (level, moves) => {
-        if (!isInitialized || !auth.currentUser) return;
-        const user = auth.currentUser;
-
-        // Save user's personal best
-        const userRef = doc(db, "users", user.uid);
-
-        try {
-            await setDoc(userRef, {
-                displayName: user.displayName,
-                lastActive: new Date().toISOString(),
-                [`best_level_${level}`]: moves
-            }, { merge: true });
-
-            console.log("Score saved!");
-        } catch (e) {
-            console.error("Error saving score:", e);
-        }
+        if (!isInitialized) return;
     },
     isConfigured: () => isInitialized
 };

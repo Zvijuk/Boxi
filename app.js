@@ -523,12 +523,28 @@ class CoinisBoxworldOfficial {
     }
 
     async saveScoreToLeaderboard(points) {
-        if (!window.firebaseServices) return;
+        if (!window.firebaseServices) {
+            console.error("Firebase Services not found!");
+            return;
+        }
+
         const { db, collection, addDoc, serverTimestamp, ensureGuestId, doc, setDoc } = window.firebaseServices;
+
+        if (!db) {
+            console.error("Firestore DB not initialized!");
+            return;
+        }
 
         const levelId = `level_${this.currentLevel}`;
         const guestId = ensureGuestId();
-        const userName = this.currentUser ? (this.currentUser.displayName || "Anonymous") : `Guest-${guestId.substr(0, 4)}`;
+
+        // Use currentUser display name or fallback
+        let userName;
+        if (this.currentUser) {
+            userName = this.currentUser.displayName || "Anonymous";
+        } else {
+            userName = `Guest-${guestId.substr(0, 4).toUpperCase()}`;
+        }
 
         const scoreData = {
             levelId: this.currentLevel,
@@ -541,19 +557,28 @@ class CoinisBoxworldOfficial {
         };
 
         try {
-            console.log("Submitting score to leaderboard...", scoreData);
-            await addDoc(collection(db, "leaderboards", levelId, "scores"), scoreData);
-            console.log("Score submitted.");
+            console.log(`[Leaderboard] Attempting to write score to: leaderboards/${levelId}/scores`);
+            console.log(`[Leaderboard] Data:`, scoreData);
 
+            const scoresRef = collection(db, "leaderboards", levelId, "scores");
+            // Explicit await to catch errors
+            const docRef = await addDoc(scoresRef, scoreData);
+
+            console.log(`[Leaderboard] Score written successfully! Doc ID: ${docRef.id}`);
+
+            // Also update personal best if Auth
             if (this.currentUser) {
-                // Update Personal Best
-                await setDoc(doc(db, "users", this.currentUser.uid), {
+                const userRef = doc(db, "users", this.currentUser.uid);
+                await setDoc(userRef, {
                     [`best_level_${this.currentLevel}`]: points
                 }, { merge: true });
+                console.log(`[Leaderboard] Personal best updated for user ${this.currentUser.uid}`);
             }
         } catch (e) {
-            console.error("Leaderboard submit failed (Check permissions?):", e);
-            // alert("Score could not be posted. You may be offline or permissions are blocking.");
+            console.error("[Leaderboard] SUBMIT FAILED:", e);
+            console.error("[Leaderboard] Error Code:", e.code);
+            console.error("[Leaderboard] Error Message:", e.message);
+            // alert(`Leaderboard Error: ${e.message}`); // Optional: alert user
         }
     }
 
